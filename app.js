@@ -276,7 +276,7 @@
     const tU = cfg.targetUniformPct / 100, ev = m.minAvg;
     // constraint checklist (restored from the old program); the strip tiles already show light, desk, evenness,
     // board and power, so the issues chip lists the remaining failed checks
-    const chk = E.checklist(cfg, { lm: r.outLm, deskMin: r.desk ? r.desk.min : null, evenness: ev, Tboard: th ? th.Tboard : null, TjMax: th ? th.TjMax : null, TdOut: th ? th.TdOut : null, Tboss: th ? th.map.Tboss : null, TshellIn: th ? th.map.TshellIn : null, P: r.P, bad: r.bad.size, drv: d });
+    const chk = E.checklist(cfg, { lm: r.outLm, deskMin: r.desk ? r.desk.min : null, evenness: ev, evenFace: m.minAvgFace, Tboard: th ? th.Tboard : null, TjMax: th ? th.TjMax : null, TdOut: th ? th.TdOut : null, Tboss: th ? th.map.Tboss : null, TshellIn: th ? th.map.TshellIn : null, P: r.P, bad: r.bad.size, drv: d });
     const TILED = ['Light out', 'Desk light (min)', 'Evenness', 'Board temperature', 'LED power'];
     const issues = chk.filter(c => !c.ok && !TILED.includes(c.k)).map(c => `${c.k}: ${c.val} (limit ${c.lim})`);
     if (!d.full) issues.push('Strings are uneven: LED count is not a multiple of LEDs per string');
@@ -285,7 +285,7 @@
       'Board temperature': ['heat', 'See heat'], 'LED junction': ['heat', 'See heat'], 'Diffuser outside (touch)': ['heat', 'See heat'], 'PLA bosses touching the board': ['heat', 'See heat'], 'Head Back inside (PLA)': ['heat', 'See heat'], 'LED power': ['sweep', 'Find current'], 'Driver current': ['current', 'Current'] };
     $('checkList').innerHTML = `<table class="chk-t"><tr><th></th><th>Check</th><th>Now</th><th>Limit</th><th>Limit from</th><th></th></tr>${chk.map(c => `<tr><td class="${c.ok ? 'good' : 'bad'}">${c.ok ? '✓' : '✕'}</td><td>${c.k}</td><td>${esc(c.val)}</td><td>${esc(c.lim)}</td><td class="src">${esc(c.src)}</td><td>${!c.ok && FIX[c.k] ? `<button class="fixbtn" data-fix="${FIX[c.k][0]}">${FIX[c.k][1]} →</button>` : ''}</td></tr>`).join('')}</table>`;
     $('strip').innerHTML =
-      tile(2, ev >= tU ? 'ok' : ev >= tU * 0.8 ? 'mid' : 'no', 'Evenness', 'Darkest spot on the diffuser ÷ average brightness. 100% = perfectly even. Click to go to Layout.', fmt(ev * 100, 0), '%', `target ≥ ${fmt(cfg.targetUniformPct, 0)}% · variation ${fmt(m.cv * 100, 1)}%`) +
+      tile(2, ev >= tU ? 'ok' : ev >= tU * 0.8 ? 'mid' : 'no', 'Evenness', 'Darkest spot on the diffuser ÷ average brightness. 100% = perfectly even. With the original DXF keepout this is scored outside the blocked corner; the second line gives the whole face, corner included. Click to go to Layout.', fmt(ev * 100, 0), '%', `target ≥ ${fmt(cfg.targetUniformPct, 0)}% · variation ${fmt(m.cv * 100, 1)}%${cfg.keep.on && cfg.keep.zone === 'dxf' ? ` · whole face ${fmt(m.minAvgFace * 100, 0)}%` : ''}`) +
       tile(3, r.outLm >= cfg.targetLm ? 'ok' : r.outLm >= cfg.targetLm * 0.85 ? 'mid' : 'no', 'Light out', 'Lumens leaving the diffuser. Click to go to Light &amp; dimming.', fmt(r.outLm, 0), 'lm', `target ≥ ${fmt(cfg.targetLm, 0)} lm`) +
       tile(3, !r.desk ? '' : r.desk.min >= cfg.targetLux ? 'ok' : r.desk.min >= cfg.targetLux * 0.85 ? 'mid' : 'no', 'Desk light (min)', 'Lowest illuminance over a ' + (cfg.taskD / 10) + ' cm circle, ' + (cfg.taskZ / 10) + ' cm below the diffuser (Notion target 500 lx, from EN 12464-1). Each diffuser patch is treated as a Lambertian source and the head as parallel to the desk. Click to go to Light and dimming.', r.desk ? fmt(r.desk.min, 0) : '—', 'lx', r.desk ? `target ≥ ${fmt(cfg.targetLux, 0)} · avg ${fmt(r.desk.avg, 0)} · ${cfg.roomLux ? `incl. ${fmt(cfg.roomLux, 0)} lx room light` : 'dark room (lamp only)'}` : '') +
       tile(4, !th ? '' : th.Tboard <= cfg.maxBoard ? 'ok' : th.Tboard <= cfg.maxBoard + 10 ? 'mid' : 'no', 'Board temperature (hottest)', 'Hottest point of the LED board from the full heat map: heat spreads through the metal-core board and leaves through the diffuser (Ben\'s network), the back cavity and the PLA bosses. Includes the LEDs and the on-board electronics (worst case 4.6 W). Click to go to Heat.', th ? fmt(th.Tboard, 1) : '—', '°C', th ? `${th.case} case · range ${fmt(thermRange.best.Tboard, 0)}–${fmt(thermRange.worst.Tboard, 0)} °C · LED chip ${fmt(th.TjMax, 1)} · board limit ${fmt(cfg.maxBoard, 0)}` : '') +
@@ -303,6 +303,7 @@
     ]);
     $('lightKv').innerHTML = kv([
       [`Brightness variation ${tip('How much brightness varies across the diffuser (standard deviation ÷ average). No paper gives a visibility threshold for this; lower is smoother.')}`, fmt(m.cv * 100, 1) + '%'],
+      ...(cfg.keep.on && cfg.keep.zone === 'dxf' ? [[`Whole face, keepout corner included ${tip('The same measures over the whole lit face. The corner is fully blocked on the prototype, so its far end (about 42 mm from any allowed LED position) stays dark whatever the layout. Shown for reference; not optimized.')}`, `evenness ${fmt(m.minAvgFace * 100, 0)}% · variation ${fmt(m.cvFace * 100, 1)}%`]] : []),
       [`Dimmest 5% vs average ${tip('A gentler evenness measure that ignores the single darkest point.')}`, fmt(m.p5Avg * 100, 0) + '%'],
       [`Light reaching diffuser ${tip('Share of the LED light that lands on the lit aperture of the diffuser (the Head Front lip opening, from the STEP).')}`, fmt(m.util / (r.kept || 1) * 100, 0) + '%'],
       [`Diffuser brightness ${tip('Average luminance of the diffuser surface.')}`, fmt(r.lum, 0) + ' cd/m²'],
@@ -352,7 +353,7 @@
     if (ok && document.activeElement !== $('selX')) $('selX').value = leds[selected].x.toFixed(2);
     if (ok && document.activeElement !== $('selY')) $('selY').value = leds[selected].y.toFixed(2);
   }
-  function snapSummary() { return { minAvg: res.m.minAvg, cv: res.m.cv, outLm: res.outLm, Tmax: therm ? therm.Tmax : NaN, P: res.P, util: res.m.util }; }
+  function snapSummary() { return { minAvg: res.m.minAvg, minAvgFace: res.m.minAvgFace, cv: res.m.cv, outLm: res.outLm, Tmax: therm ? therm.Tmax : NaN, P: res.P, util: res.m.util }; }
   function snapDesc(c) {
     return `${c.count} LEDs · ${c.gap} mm gap · ${c.current} mA · ${E.CCT[c.cct] ? c.cct + ' K' : 'custom LED'}${c.fluxCase === 'tol' ? ' (−7%)' : ''} · lens at (${(+c.keep.x).toFixed(1)}, ${(+c.keep.y).toFixed(1)})`;
   }
@@ -361,7 +362,7 @@
     if (v3on) v3pickPanel(); // keep the 3D compare list in step with the snapshots
     const cur = { name: 'Current design (unsaved)', desc: snapDesc(cfg), sum: snapSummary(), current: true };
     const all = [cur, ...snapshots];
-    const rows = [['Evenness', 'minAvg', v => fmt(v * 100, 0) + '%', 1], ['Variation', 'cv', v => fmt(v * 100, 1) + '%', -1], ['Light out', 'outLm', v => fmt(v, 0) + ' lm', 1], ['Hottest', 'Tmax', v => fmt(v, 1) + ' °C', -1], ['Power', 'P', v => fmt(v, 2) + ' W', -1]];
+    const rows = [['Evenness', 'minAvg', v => fmt(v * 100, 0) + '%', 1], ['Evenness, whole face', 'minAvgFace', v => fmt(v * 100, 0) + '%', 1], ['Variation', 'cv', v => fmt(v * 100, 1) + '%', -1], ['Light out', 'outLm', v => fmt(v, 0) + ' lm', 1], ['Hottest', 'Tmax', v => fmt(v, 1) + ' °C', -1], ['Power', 'P', v => fmt(v, 2) + ' W', -1]];
     const best = {};
     if (all.length > 1) for (const [, k, , dir] of rows) { const vals = all.map(s => s.sum[k]).filter(Number.isFinite); if (vals.length) best[k] = dir > 0 ? Math.max(...vals) : Math.min(...vals); }
     $('snaps').innerHTML = all.map((s, i) => `<div class="snap ${s.current ? 'current' : ''}">
@@ -682,7 +683,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
   }
   function designRow(name, c, ls, map, st) {
     const B = E.lightBudget(c, st.geo, ls, st.duty), m = E.metrics(st.geo, st.E, ls.length), desk = E.taskLight(st.geo, st.E, st.flux, c);
-    return { name, gap: c.gap, current: c.current, cct: E.CCT[c.cct] ? c.cct + ' K' : 'custom', n: ls.length, even: m.minAvg, cv: m.cv, lm: ls.length * st.flux * m.util * c.tau,
+    return { name, gap: c.gap, current: c.current, cct: E.CCT[c.cct] ? c.cct + ' K' : 'custom', n: ls.length, even: m.minAvg, evenFace: m.minAvgFace, cv: m.cv, lm: ls.length * st.flux * m.util * c.tau,
       deskMin: desk.min, deskAvg: desk.avg, Tmax: map.Tmax, Tj: map.TjMax, Tboss: map.Tboss, TdOut: map.TdOutMax, P: st.duty.reduce((a, b) => a + b, 0) * E.led(c, map.TjMax).Pel, out: B.out, walls: B.walls, ring: B.annulus };
   }
   function buildReport() {
@@ -697,14 +698,14 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     warmPanel(); const warm = lastWarm;
     const imgLight = canvasShot('diffuser'), imgHeat = canvasShot('heat'), imgWarm = $('warmChart').toDataURL('image/png');
     let img3d = null; try { if (v3on && v3) img3d = v3.png(); } catch (e) { /* 3D not open */ }
-    const chk = E.checklist(cfg, { lm: r.outLm, deskMin: r.desk ? r.desk.min : null, evenness: r.m.minAvg, Tboard: M.Tmax, TjMax: M.TjMax, TdOut: M.TdOutMax, Tboss: M.Tboss, TshellIn: M.TshellIn, P: r.P, bad: r.bad.size, drv: r.drv });
+    const chk = E.checklist(cfg, { lm: r.outLm, deskMin: r.desk ? r.desk.min : null, evenness: r.m.minAvg, evenFace: r.m.minAvgFace, Tboard: M.Tmax, TjMax: M.TjMax, TdOut: M.TdOutMax, Tboss: M.Tboss, TshellIn: M.TshellIn, P: r.P, bad: r.bad.size, drv: r.drv });
     const fails = chk.filter(c => !c.ok), ev = window.HEAD_EVIDENCE || [], assumed = ev.filter(e => e[2] === 'assumed' || e[2] === 'knowledge');
     const nb = E.neighbours(leds), xs = geo.poly.map(v => v[0]), ys = geo.poly.map(v => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
     const best = wi.rows.filter(x => x.w.passive).sort((a, b) => a.m.Tmax - b.m.Tmax)[0];
     const T = (v, d = 0) => fmt(v, d), pc = v => fmt(v * 100, 0) + '%';
     const tbl = (head, body) => `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(rw => `<tr>${rw.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
     const summary = [
-      `<b>Light:</b> ${T(r.outLm)} lm out (target ${cfg.targetLm}), desk minimum ${T(r.desk.min)} lx at ${cfg.taskZ / 10} cm (target ${cfg.targetLux}), evenness ${pc(r.m.minAvg)} (target ${cfg.targetUniformPct}%). Only ${pc(B.out)} of the LED light leaves through the diffuser; ${pc(B.walls)} is absorbed by the walls, chamfer and lip.`,
+      `<b>Light:</b> ${T(r.outLm)} lm out (target ${cfg.targetLm}), desk minimum ${T(r.desk.min)} lx at ${cfg.taskZ / 10} cm (target ${cfg.targetLux}), evenness ${pc(r.m.minAvg)} (target ${cfg.targetUniformPct}%${cfg.keep.on && cfg.keep.zone === 'dxf' ? `; scored outside the blocked keepout corner, whole face ${pc(r.m.minAvgFace)}` : ''}). Only ${pc(B.out)} of the LED light leaves through the diffuser; ${pc(B.walls)} is absorbed by the walls, chamfer and lip.`,
       `<b>Heat (${M.case} case):</b> board ${T(M.Tmax)} °C, LED chips ${T(M.TjMax)} °C (datasheet limit 125), diffuser surface ${T(M.TdOutMax)} °C, PLA bosses ${T(M.Tboss)} °C (PLA softens ≈ ${cfg.plaMax} °C). ${T(M.Q.total, 2)} W in: LEDs ${T(M.Q.led, 2)} W + electronics ${T(M.Q.elec, 2)} W.`,
       `<b>Biggest passive lever:</b> ${esc(best.w.name)} → board ${T(best.m.Tmax)} °C (${fmtD(best.m.Tmax - M.Tmax)} °C).`,
       `<b>Warm-up:</b> 95% of the temperature rise after ${T(warm.t95 / 60)} min; bench runs should last at least that long.`,
@@ -723,8 +724,8 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     <div class="meta">Generated ${now.toLocaleString()} by Head LED Placement Studio · geometry from the Head STEP (gap ${cfg.gap} mm) · ${cfg.count} LEDs at ${cfg.current} mA, ${E.CCT[cfg.cct] ? cfg.cct + ' K' : 'custom'}, ${cfg.fluxCase === 'tol' ? 'worst-case' : 'typical'} flux · ${cfg.roomLux ? cfg.roomLux + ' lx room light' : 'dark room'}</div>
     <h2>Summary</h2><ul>${summary.map(s => `<li>${s}</li>`).join('')}</ul>
     <h2>Designs compared</h2>
-    ${tbl(['Design', 'Gap', 'Current', 'Evenness', 'Variation', 'Light out', 'Desk min / avg', 'Board / LED chip', 'PLA bosses', 'Diffuser surface', 'LED power', 'Light: out / walls / camera ring'],
-      rows.map(d => [esc(d.name), d.gap + ' mm', d.current + ' mA', `<span class="${d.even * 100 >= cfg.targetUniformPct ? 'ok' : 'bad'}">${pc(d.even)}</span>`, fmt(d.cv * 100, 1) + '%', `<span class="${d.lm >= cfg.targetLm ? 'ok' : 'bad'}">${T(d.lm)} lm</span>`, `<span class="${d.deskMin >= cfg.targetLux ? 'ok' : 'bad'}">${T(d.deskMin)}</span> / ${T(d.deskAvg)} lx`, `${T(d.Tmax)} / <span class="${d.Tj > 125 ? 'bad' : ''}">${T(d.Tj)}</span> °C`, `<span class="${d.Tboss > cfg.plaMax ? 'bad' : 'ok'}">${T(d.Tboss)} °C</span>`, T(d.TdOut) + ' °C', fmt(d.P, 2) + ' W', `${pc(d.out)} / ${pc(d.walls)} / ${fmt(d.ring * 100, 2)}%`]))}
+    ${tbl(['Design', 'Gap', 'Current', 'Evenness (whole face)', 'Variation', 'Light out', 'Desk min / avg', 'Board / LED chip', 'PLA bosses', 'Diffuser surface', 'LED power', 'Light: out / walls / camera ring'],
+      rows.map(d => [esc(d.name), d.gap + ' mm', d.current + ' mA', `<span class="${d.even * 100 >= cfg.targetUniformPct ? 'ok' : 'bad'}">${pc(d.even)}</span> (${pc(d.evenFace)})`, fmt(d.cv * 100, 1) + '%', `<span class="${d.lm >= cfg.targetLm ? 'ok' : 'bad'}">${T(d.lm)} lm</span>`, `<span class="${d.deskMin >= cfg.targetLux ? 'ok' : 'bad'}">${T(d.deskMin)}</span> / ${T(d.deskAvg)} lx`, `${T(d.Tmax)} / <span class="${d.Tj > 125 ? 'bad' : ''}">${T(d.Tj)}</span> °C`, `<span class="${d.Tboss > cfg.plaMax ? 'bad' : 'ok'}">${T(d.Tboss)} °C</span>`, T(d.TdOut) + ' °C', fmt(d.P, 2) + ' W', `${pc(d.out)} / ${pc(d.walls)} / ${fmt(d.ring * 100, 2)}%`]))}
     <p class="small">Every design is recomputed with the current model (heat: ${M.case} case). Targets: brief (300 lm, 65 %, 40 °C, 4 W, provisional); desk 500 lx at 40 cm (Ben's Notion, EN 12464-1); LED chip 125 °C (Cree Pro9 datasheet).</p>
     <h2>This design</h2>
     <div class="imgs"><div><img src="${imgLight}" alt="Diffuser brightness map"><div class="cap">Diffuser brightness (yellow bright, purple dark), with the LED layout.</div></div>
@@ -752,7 +753,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
       <li>Light: each LED a cos^m (m = 1 from the 120° beam) source onto the diffuser at the optical height (17.9 − 0.62 mm), Moreno 2006 Eq. 1 × incidence cosine = Ben's derivation; walls absorb; diffuser transmission 0.70.</li>
       <li>Desk: each diffuser patch a Lambertian source onto the desk plane (Ben's method). Evenness = darkest/average (brief); variation = CV (Yang 2009, Su 2012).</li>
       <li>Heat: 2-D board conduction + Ben's front network + back cavity (STEP depths) + PLA bosses with radial spreading into the shell; LED heat k_h = 0.85 (Hui & Qin 2009); reduces exactly to Ben's network (check 20).</li>
-      <li>Checks: node checks/examples.js (25 checks against the sources) in the project repository.</li>
+      <li>Checks: node checks/examples.js (26 checks against the sources) in the project repository.</li>
     </ul></body></html>`;
     status('Report ready');
     const w = window.open('', '_blank');

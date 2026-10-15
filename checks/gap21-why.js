@@ -1,4 +1,4 @@
-// Why does the 21 mm gap stay below 65 % evenness? Tests each suspect in turn.
+// Why does evenness (scored outside the keepout corner) stay below 65 %? Tests each suspect in turn.
 // CAD geometry (lit aperture, bosses, default keepout); flux derated at the heat map's hottest LED chip.
 // Usage: node checks/gap21-why.js  (~3 min)
 'use strict';

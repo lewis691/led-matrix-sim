@@ -65,8 +65,8 @@ Values are the program defaults (`engine.js → defaults()`), checked against th
 **What it means (Variation A re-optimized at the CAD geometry with the original DXF keepout, 25 mA; `checks/example-variations-output.txt`, regenerated 15 Oct):**
 - **About 22–28% of the LED light hits the walls, chamfer and lip** (22% even at a 10 mm gap, because the lip opening sits 3.6 mm inside the board edge) and is lost into dark PLA. Only 50–54% leaves through the diffuser.
 - **At 25 mA the hex start misses the 500 lx desk minimum** (455 lx); the optimizer's desk limit pulls LEDs inward to reach exactly 500 lx.
-- **Evenness (min/avg) is 1–2%** for every layout, because the diffuser over the keepout corner is scored and its far end is about 42 mm from any legal LED (§ camera keepout). CV (33% optimized vs 41% hex) is the more useful comparison with this keepout.
-- Reference numbers: Baseline hex 1% evenness, CV 40.7%, 373 lm, desk 455 lx; Variation A 2%, CV 33.1%, 400 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases).
+- **Evenness is scored outside the blocked keepout corner** (§ camera keepout); the whole-face value, corner included, stays at 0–3% for every layout.
+- Reference numbers: Baseline hex 32% evenness (whole face 1%), CV 20.9%, 373 lm, desk 455 lx; Variation A 48% (0%), CV 21.3%, 402 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases). The desk limit is what holds evenness down: with it off the optimizer reaches 93% but the desk gets only 395 lx.
 - **The board runs about 124 °C (worst case) or 85 °C (best case)**, because the 4.6 W of electronics roughly doubles the heat. LED chips sit about 0.5 °C above the board, right at the 125 °C datasheet limit in the worst case.
 - **The PLA screw bosses touch the board.** At these temperatures they would soften (PLA glass transition about 55–60 °C). This is the biggest physical risk the model now shows.
 - **The camera ring leaks about 0.03–0.1% of the light (about 0.2–0.6 lm) directly**, undiffused: a thin bright ring around the lens. With the corner keepout no LED is near the lens, so the leak is smaller than with the board-footprint keepout.
@@ -151,8 +151,18 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **Clearance:** the original 2.3 mm from LED centre, i.e. 0.06 mm from the LED body.
   - **Drawn as:** a hatched block with a dashed clearance line on the canvas, a dark patch on the board in 3D, and layer `CAMERA_KEEPOUT` in the DXF export.
   - **Contains** the whole 25 × 24 mm camera board, so the board-footprint rule is implied.
-  - **Scoring:** the diffuser over the corner is still scored for evenness, because the whole face should glow evenly (user, 15 Oct).
-  - **Effect** (CAD geometry, 25 mA, desk limit on, 6,000 iterations): placeable area 7,948 mm² (9,350 with the board footprint only, 9,970 with the barrel only). The far corner of the face (58.7, −19.7) is 41.7 mm from the nearest legal LED position, where one LED gives only 2% of what it gives straight above it (h⁴/(h² + r²)² at h = 17.28 mm). So the darkest point stays near 1% of the average whatever the placement: optimized evenness (min/avg) 1%, 5th percentile/avg 24%, CV 31%, vs 46%, 57% and 20% with the board footprint. 7.6% of the lit face is more than one optical height from any legal LED spot. Min/avg can't reach the 65% target with this keepout; the fixes are physical (a lighter-coloured or reflective camera cover in the corner, a bigger gap, or LEDs allowed closer to the camera).
+  - **Scoring:** the whole corner is blocked on the prototype (user, 15 Oct), so evenness (min/avg, CV, dimmest 5%) is scored and optimized on the lit face outside it. The whole-face values, corner included, are shown alongside (evenness tile, light panel, checklist, compare, report).
+  - **Why not score the corner:** its far end (58.7, −19.7) is 41.7 mm from the nearest allowed LED position, where one LED gives only 2% of what it gives straight above it (h⁴/(h² + r²)² at h = 17.28 mm). Whole-face min/avg stays at 1–3% for every layout, so it can't guide the optimizer.
+  - **Effect** (CAD geometry, 8,000 iterations; placeable area 7,948 mm², vs 9,350 with the board footprint only):
+
+    | Current, desk limit | Evenness outside corner | Whole face | CV | Light out | Desk min | Board / chip (worst) |
+    |---|---|---|---|---|---|---|
+    | 25 mA, off | 93% | 3% | 3.4% | 319 lm | 395 lx | 124 / 124.6 °C |
+    | 25 mA, on | 44% | 1% | 22% | 402 lm | 500 lx | 124 / 124.4 °C |
+    | 28 mA, on | 65% | 2% | 9.1% | 403 lm | 500 lx | 127 / 128.3 °C |
+    | 31 mA, on | 88% | 3% | 3.4% | 404 lm | 500 lx | 131 / 132.3 °C |
+
+    Without the desk limit the layout is very even. Meeting 500 lx at 25 mA pulls LEDs inward. Meeting both 65% and 500 lx needs about 28 mA, which puts the hottest chip over 125 °C in Ben's worst-case air. So the conflict is now light vs heat, not the keepout.
   - **Why it isn't the default:** that corner is mostly LED board, not camera. The lens only needs its circle. Confirm with Zoheb/Rizwan which applies.
   - **Source:** [DXF]; clearance [Old]/[Mine].
 
@@ -307,10 +317,10 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 
   | CCT | Flux | Light out | Desk min | Lowest current meeting 300 lm + 500 lx (chip temperature) |
   |---|---|---|---|---|
-  | 3000 K typical | 12.3 lm | 400 lm | 500 lx | 25.0 mA, 4.05 W (chip 124.5 °C) |
-  | 3000 K −7% | 11.5 lm | 372 lm | 465 lx | 27.0 mA, 4.37 W (chip 127.1 °C, over 125) |
-  | 4000 / 5000 K typical | 13.0 lm | 420 lm | 526 lx | 24.0 mA, 3.89 W (chip 123.2 °C) |
-  | 4000 / 5000 K −7% | 12.1 lm | 391 lm | 489 lx | 26.0 mA, 4.21 W (chip 125.8 °C, over 125) |
+  | 3000 K typical | 12.3 lm | 402 lm | 500 lx | 25.0 mA, 4.05 W (chip 124.5 °C) |
+  | 3000 K −7% | 11.5 lm | 374 lm | 465 lx | 27.0 mA, 4.37 W (chip 127.0 °C, over 125) |
+  | 4000 / 5000 K typical | 13.0 lm | 423 lm | 526 lx | 24.0 mA, 3.89 W (chip 123.1 °C) |
+  | 4000 / 5000 K −7% | 12.1 lm | 393 lm | 489 lx | 26.0 mA, 4.21 W (chip 125.7 °C, over 125) |
 
   With worst-case flux and worst-case heat, no current meets the desk target within the chip limit.
 
@@ -528,7 +538,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Once met, any move that would break it is rejected.
   - You get a warning if 500 lx can't be reached at the current setting.
 - **Source:** target [Ben-Light]; method [Mine]. Check 15 confirms it holds.
-- **Finding (CAD geometry, default keepout, `checks/desk-limit.js`):** at 25 mA the limit is met (500 lx) by pulling LEDs inward (CV 34% vs 24% with the limit off). At 20 mA it can't be met: the LEDs bunch up (CV 108%) and still only reach 473 lx.
+- **Finding (CAD geometry, default keepout, `checks/desk-limit.js`):** at 25 mA the limit is met (500 lx) by pulling LEDs inward: evenness 46% vs 93% with the limit off. At 20 mA it can't be met: the LEDs bunch up (CV 103%) and still only reach 473 lx.
 
 **Optimize string dimming at the same time (option)**
 - **How:**
@@ -536,7 +546,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Strings are regrouped (zones) every 500 iterations as LEDs move, each new string taking its LEDs' average duty.
   - Auto-balance runs at the end.
 - **Source:** solving spacing and centre-LED flux together [Moreno06] §3C; method [Mine].
-- **Test (CAD geometry, default keepout, regenerated 15 Oct):** a slightly better score than placing first and then pressing Auto-balance (better in 5 of 6 runs; CV 24.1% vs 24.3%, min/avg 4.4% vs 4.1%), but it keeps less light (69% vs 79%). See `checks/dimming-compare.js`.
+- **Test (CAD geometry, default keepout, regenerated 15 Oct):** about the same as placing first and then pressing Auto-balance (better in 3 of 6 runs; evenness 93.5% vs 93.2%), and it keeps less light (82% vs 99%). See `checks/dimming-compare.js`.
 
 **Find best from scratch (multi-start)**
 - **How:** K fresh starts (default 3): Poisson → CVT (25 iterations) → optimize. Keeps the best.
@@ -706,7 +716,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 ## 9. Checks you can run
 
 All from `code/`:
-- `node checks/examples.js`: 25 checks with source, expected and actual values:
+- `node checks/examples.js`: 26 checks with source, expected and actual values:
   - light formula, energy conservation, Moreno spacing, Yang ripple
   - Ben's heat calc, Hui's equations, driver limits
   - Randomize, Even out, Optimize, dimming
@@ -715,9 +725,10 @@ All from `code/`:
   - heat map vs Ben's network, heat-map energy balance and grid convergence, light budget accounts for every lumen
   - warm-up settles on the steady map, passive-cooling what-ifs behave physically
   - current-sweep bisection matches a full scan with heat-map derating
+  - evenness scored outside the blocked keepout corner, whole face reported too
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
-- `node checks/gap21-why.js`: why evenness stays below 65% (10, 17.9 and 21 mm). With the original DXF keepout the darkest point is always next to the lens inside the keepout corner, so min/avg is 0–5% at every gap, current and LED count; with no camera at 21 mm it is 42%. The desk limit at 25 mA also pulls LEDs inward (5% → 0% at 21 mm).
+- `node checks/gap21-why.js`: why evenness (outside the keepout corner) stays below 65%. The 500 lx desk limit at 25 mA pulls LEDs inward: 80% at 10 mm, 48% at 17.9 mm, 38% at 21 mm; 94% at 21 mm with the limit off. With the limit on at 21 mm it reaches 69% at 29 mA and 91% at 33 mA, with the board at 129–134 °C worst case.
 - `node checks/thermal-40c.js`: with the full heat map the electronics alone (LEDs off) put the board at 62–90 °C, so 40 °C is impossible at any LED current. Even with the electronics off the board, 40 °C allows only 6.6 mA (1.08 W, 110 lm, 134 lx) in the worst case.
 - `node checks/example-variations.js`: reference numbers for the Baseline / A / B walkthrough.
 - `node checks/dimming-compare.js`: joint vs two-pass dimming.

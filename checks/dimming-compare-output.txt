@@ -1,12 +1,12 @@
 6 runs (3 starts x 2 seeds), 6000 iterations, zone strings, min duty 0.3, 17.9 mm gap, default keepout
 
-hex       seed 9  | two-pass: evenness 4%, CV 24.3%, score 0.817, light kept 89%  | joint: evenness 4%, CV 24.2%, score 0.818, light kept 68%
-hex       seed 31 | two-pass: evenness 4%, CV 24.1%, score 0.818, light kept 69%  | joint: evenness 4%, CV 24.0%, score 0.814, light kept 70%
-random A  seed 9  | two-pass: evenness 4%, CV 24.4%, score 0.820, light kept 75%  | joint: evenness 5%, CV 24.5%, score 0.818, light kept 77%
-random A  seed 31 | two-pass: evenness 4%, CV 24.2%, score 0.816, light kept 81%  | joint: evenness 5%, CV 24.1%, score 0.813, light kept 70%
-random B  seed 9  | two-pass: evenness 4%, CV 24.4%, score 0.820, light kept 88%  | joint: evenness 5%, CV 24.0%, score 0.813, light kept 61%
-random B  seed 31 | two-pass: evenness 4%, CV 24.3%, score 0.819, light kept 74%  | joint: evenness 4%, CV 23.9%, score 0.815, light kept 69%
+hex       seed 9  | two-pass: evenness 94%, CV 3.4%, score 0.070, light kept 100%  | joint: evenness 93%, CV 5.3%, score 0.097, light kept 81%
+hex       seed 31 | two-pass: evenness 94%, CV 3.2%, score 0.069, light kept 99%  | joint: evenness 94%, CV 4.3%, score 0.081, light kept 78%
+random A  seed 9  | two-pass: evenness 93%, CV 4.0%, score 0.084, light kept 100%  | joint: evenness 94%, CV 3.6%, score 0.071, light kept 83%
+random A  seed 31 | two-pass: evenness 92%, CV 3.7%, score 0.082, light kept 100%  | joint: evenness 94%, CV 3.2%, score 0.066, light kept 86%
+random B  seed 9  | two-pass: evenness 93%, CV 6.2%, score 0.103, light kept 97%  | joint: evenness 93%, CV 5.5%, score 0.100, light kept 79%
+random B  seed 31 | two-pass: evenness 93%, CV 3.9%, score 0.078, light kept 99%  | joint: evenness 93%, CV 3.8%, score 0.078, light kept 83%
 
-AVERAGE two-pass: evenness 4.1%, CV 24.3%, score 0.818, light kept 79%
-AVERAGE joint   : evenness 4.4%, CV 24.1%, score 0.815, light kept 69%
-joint scored better in 5 of 6 runs
+AVERAGE two-pass: evenness 93.2%, CV 4.1%, score 0.081, light kept 99%
+AVERAGE joint   : evenness 93.5%, CV 4.3%, score 0.082, light kept 82%
+joint scored better in 3 of 6 runs

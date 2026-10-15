@@ -274,5 +274,21 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
     mono && (a.best ? a.best.I : -1) === (b.best ? b.best.I : -1));
 }
 
+// 26. Evenness scoring area: with the DXF corner keepout, scored cells = the lit face minus the corner (and the camera
+//     hole); with the board-footprint keepout the scored and whole-face values are identical
+{
+  const g = E.buildGeo(cfg, cfg.res), K = cfg.keep;
+  let bad = 0, inZone = 0, face = 0, scored = 0;
+  for (let c = 0; c < g.nD; c++) {
+    const z = E.zoneDist(K, g.dx[c], g.dy[c]) < 0; if (g.dFace[c]) face++; if (g.dEval[c]) scored++; if (g.dFace[c] && z) inZone++;
+    if (g.dEval[c] && (!g.dFace[c] || z || g.camMask[c])) bad++;
+    if (g.dFace[c] && !z && !g.dEval[c]) bad++;
+  }
+  const c2 = E.clone(cfg); c2.keep.zone = 'module'; const g2 = E.buildGeo(c2, c2.res), F = E.Field(g2, c2); F.setAll(E.hex(c2, E.buildPlacer(c2), 60)); const m2 = E.metrics(g2, F.E, 60);
+  const ok = bad === 0 && inZone > 0 && face - scored === inZone && m2.minAvg === m2.minAvgFace && m2.cv === m2.cvFace;
+  check('26. Evenness is scored outside the blocked keepout corner; whole face reported too', 'User, 15 Oct: the whole DXF corner is blocked on the prototype',
+    'scored = whole face − corner cells; board-footprint keepout: scored = whole face', `${face} face cells, ${inZone} in the corner, ${scored} scored, ${bad} misclassified; footprint keepout ${f(m2.minAvg * 100, 1)}% = ${f(m2.minAvgFace * 100, 1)}%`, ok);
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;

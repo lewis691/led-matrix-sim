@@ -1,8 +1,8 @@
 Baseline: hex grid, CAD geometry (17.9 mm gap), 25 mA
-  evenness 1% | variation 40.7% | light out 373 lm | desk min 455 lx (avg 575) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 125 °C | light: out 50.4%, walls 27.7%, camera ring 0.03% | power 4.05 W | LED spacing 12.9–12.9 mm (avg 12.9)
+  evenness 32% (whole face 1%) | variation 20.9% | light out 373 lm | desk min 455 lx (avg 575) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 125 °C | light: out 50.4%, walls 27.7%, camera ring 0.03% | power 4.05 W | LED spacing 12.9–12.9 mm (avg 12.9)
 Variation A: optimized layout, CAD geometry
-  evenness 2% | variation 33.1% | light out 400 lm | desk min 500 lx (avg 617) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 125 °C | light: out 54.1%, walls 22.2%, camera ring 0.08% | power 4.05 W | LED spacing 4.5–15.5 mm (avg 8.7)
+  evenness 48% (whole face 0%) | variation 21.3% | light out 402 lm | desk min 500 lx (avg 620) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 124 °C | light: out 54.4%, walls 21.8%, camera ring 0.06% | power 4.05 W | LED spacing 4.5–17.9 mm (avg 9.7)
 What-if: optimized layout at a 10 mm gap
-  evenness 1% | variation 33.7% | light out 405 lm | desk min 501 lx (avg 625) | board map 78–121 °C (Ben front-only 56–88) | LED chip ≤ 122 °C | light: out 54.6%, walls 21.8%, camera ring 0.03% | power 4.05 W | LED spacing 4.5–18.5 mm (avg 14.0)
+  evenness 81% (whole face 0%) | variation 8.9% | light out 407 lm | desk min 500 lx (avg 627) | board map 78–121 °C (Ben front-only 56–88) | LED chip ≤ 122 °C | light: out 54.8%, walls 21.5%, camera ring 0.02% | power 4.05 W | LED spacing 4.7–18.4 mm (avg 13.7)
 What-if: optimized layout at a 25 mm gap
-  evenness 0% | variation 53.7% | light out 395 lm | desk min 500 lx (avg 611) | board map 88–125 °C (Ben front-only 66–92) | LED chip ≤ 126 °C | light: out 53.5%, walls 22.7%, camera ring 0.10% | power 4.05 W | LED spacing 4.5–15.1 mm (avg 6.7)
+  evenness 28% (whole face 0%) | variation 48.3% | light out 396 lm | desk min 500 lx (avg 612) | board map 88–125 °C (Ben front-only 66–92) | LED chip ≤ 126 °C | light: out 53.7%, walls 22.6%, camera ring 0.09% | power 4.05 W | LED spacing 4.5–14.6 mm (avg 6.9)

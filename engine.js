@@ -29,8 +29,9 @@ function HeadLEDEngine() {
         mod: { dx0: -12.4, dx1: 12.6, dy0: -8.645, dy1: 15.355 },
         // 'dxf' zone: the corner region x >= 19.0, y <= 19.22 mm (relative to the lens: dx = -23.4, dy = +32.52, so it
         // moves with the camera); it contains the whole camera board. Original clearance: LED centre >= 2.3 mm from the
-        // zone; with the datasheet package (PKG_R 2.33) that is a body clearance of about 0, so 0 is used. The diffuser
-        // over the corner is still scored for evenness (the whole face should glow evenly; user, 15 Oct).
+        // zone; with the datasheet package (PKG_R 2.33) that is a body clearance of about 0, so 0 is used. The whole
+        // corner is blocked on the prototype (user, 15 Oct), so evenness is scored outside it; metrics() also reports
+        // the whole-face values (minAvgFace, cvFace).
         zone: 'dxf', boxDx: -23.4, boxDy: 32.52, boxMargin: 0 },
       // board screw holes (STEP). TL/TR carry the Head Front screw bosses (Ø8.6, 3 mm tall on the board front), so the
       // LED body must clear r 4.3; BL has only a screw head (holeClear).
@@ -163,7 +164,7 @@ function HeadLEDEngine() {
     const nD = dx.length;
     const geo = {
       cfgKey: geoKey(cfg), res, poly, cum, perim, gx0, gy0, nx, ny, N, type, dIdx, sdf,
-      nD, dx: Float32Array.from(dx), dy: Float32Array.from(dy), dEvalBase: Uint8Array.from(dEval), dEval: new Uint8Array(nD),
+      nD, dx: Float32Array.from(dx), dy: Float32Array.from(dy), dEvalBase: Uint8Array.from(dEval), dEval: new Uint8Array(nD), dFace: new Uint8Array(nD),
       camMask: new Uint8Array(nD), evalInset: cfg.evalInset, area: polyArea(poly), areaD: nD * res * res,
     };
     setCam(geo, cfg.keep);
@@ -175,7 +176,10 @@ function HeadLEDEngine() {
     for (let c = 0; c < geo.nD; c++) {
       const d = Math.hypot(geo.dx[c] - cam.x, geo.dy[c] - cam.y);
       geo.camMask[c] = cam.on && d <= (cam.holeR || cam.r) ? 1 : 0;   // diffuser hole: barrel top + open ring
-      geo.dEval[c] = geo.dEvalBase[c] && !geo.camMask[c] && !(cam.on && d < cam.r + geo.evalInset) ? 1 : 0;   // the hole is never scored
+      // dFace = the whole lit face (the hole is never scored); dEval = the scored part: with the 'dxf' zone, the face
+      // outside the keepout corner, which is fully blocked on the prototype (user, 15 Oct), so it can't be lit evenly
+      geo.dFace[c] = geo.dEvalBase[c] && !geo.camMask[c] && !(cam.on && d < cam.r + geo.evalInset) ? 1 : 0;
+      geo.dEval[c] = geo.dFace[c] && !(cam.on && cam.zone === 'dxf' && zoneDist(cam, geo.dx[c], geo.dy[c]) < geo.evalInset) ? 1 : 0;
     }
   }
   function geoKey(cfg) { return JSON.stringify([cfg.shape, cfg.keep, cfg.gap, cfg.ledH, cfg.apInset, cfg.m, cfg.evalInset]); }
@@ -368,18 +372,21 @@ function HeadLEDEngine() {
 
   // metrics over evaluated diffuser cells; E is per unit LED flux (1/mm^2)
   function metrics(geo, E, nLed, fast) {
-    let n = 0, s = 0, s2 = 0, mn = Infinity, mx = -Infinity, all = 0;
+    let n = 0, s = 0, s2 = 0, mn = Infinity, mx = -Infinity, all = 0, fn = 0, fs = 0, fs2 = 0, fmn = Infinity;
     const vals = [];
     for (let c = 0; c < geo.nD; c++) {
       if (geo.camMask[c]) continue;
       all += E[c];
+      if (geo.dFace[c]) { const v = E[c]; fn++; fs += v; fs2 += v * v; if (v < fmn) fmn = v; }
       if (!geo.dEval[c]) continue;
       const v = E[c]; n++; s += v; s2 += v * v; if (v < mn) mn = v; if (v > mx) mx = v; if (!fast) vals.push(v);
     }
     const mean = n ? s / n : 0, sd = n ? Math.sqrt(Math.max(0, s2 / n - mean * mean)) : 0;
     vals.sort((a, b) => a - b);
     const p5 = vals.length ? vals[Math.floor(vals.length * 0.05)] : 0;
-    return { mean, min: mn, max: mx, cv: mean ? sd / mean : 0, minAvg: mean ? mn / mean : 0, maxMin: mn ? mx / mn : Infinity, p5Avg: mean ? p5 / mean : 0, util: nLed ? all * geo.res * geo.res / nLed : 0 };
+    const fmean = fn ? fs / fn : 0, fsd = fn ? Math.sqrt(Math.max(0, fs2 / fn - fmean * fmean)) : 0;
+    // *Face = the same measures over the whole lit face, including the keepout corner (shown alongside, not optimized)
+    return { mean, min: mn, max: mx, cv: mean ? sd / mean : 0, minAvg: mean ? mn / mean : 0, minAvgFace: fmean ? fmn / fmean : 0, cvFace: fmean ? fsd / fmean : 0, maxMin: mn ? mx / mn : Infinity, p5Avg: mean ? p5 / mean : 0, util: nLed ? all * geo.res * geo.res / nLed : 0 };
   }
 
   // Light on the desk (Ben's Notion method): each diffuser patch is treated as a Lambertian source emitting the light
@@ -827,7 +834,7 @@ function HeadLEDEngine() {
     const add = (k, ok, val, lim, src) => L.push({ k, ok, val, lim, src });
     add('Light out', s.lm >= cfg.targetLm, s.lm.toFixed(0) + ' lm', '≥ ' + cfg.targetLm + ' lm', 'Brief (provisional 300 lm)');
     if (s.deskMin != null) add('Desk light (min)', s.deskMin >= cfg.targetLux, s.deskMin.toFixed(0) + ' lx' + (cfg.roomLux ? ` (incl. ${cfg.roomLux} room)` : ''), '≥ ' + cfg.targetLux + ' lx', "Ben's Notion target (EN 12464-1)");
-    add('Evenness', s.evenness * 100 >= cfg.targetUniformPct, (s.evenness * 100).toFixed(0) + ' %', '≥ ' + cfg.targetUniformPct + ' %', 'Brief (provisional 65 %)');
+    add('Evenness', s.evenness * 100 >= cfg.targetUniformPct, (s.evenness * 100).toFixed(0) + ' %' + (s.evenFace != null && cfg.keep.on && cfg.keep.zone === 'dxf' ? ` outside the keepout corner (whole face ${(s.evenFace * 100).toFixed(0)} %)` : ''), '≥ ' + cfg.targetUniformPct + ' %', 'Brief (provisional 65 %); scored outside the blocked keepout corner (user, 15 Oct)');
     if (s.Tboard != null) {
       add('Board temperature', s.Tboard <= cfg.maxBoard, s.Tboard.toFixed(1) + ' °C', '≤ ' + cfg.maxBoard + ' °C', 'Brief (provisional 40°C goal)');
       add('LED junction', s.TjMax <= LED_LIMITS.maxTj, s.TjMax.toFixed(1) + ' °C', '≤ ' + LED_LIMITS.maxTj + ' °C', 'Cree Pro9 datasheet p.4 (Tj max)');

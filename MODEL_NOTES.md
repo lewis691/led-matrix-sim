@@ -65,8 +65,8 @@ Values are the program defaults (`engine.js → defaults()`), checked against th
 **What it means (Variation A re-optimized at the CAD geometry with the original DXF keepout, 25 mA; `checks/example-variations-output.txt`, regenerated 15 Oct):**
 - **About 22–28% of the LED light hits the walls, chamfer and lip** (22% even at a 10 mm gap, because the lip opening sits 3.6 mm inside the board edge) and is lost into dark PLA. Only 50–54% leaves through the diffuser.
 - **At 25 mA the hex start misses the 500 lx desk minimum** (455 lx); the optimizer's desk limit pulls LEDs inward to reach exactly 500 lx.
-- **Evenness is scored outside the blocked keepout corner** (§ camera keepout); the whole-face value, corner included, stays at 0–3% for every layout.
-- Reference numbers: Baseline hex 32% evenness (whole face 1%), CV 20.9%, 373 lm, desk 455 lx; Variation A 48% (0%), CV 21.3%, 402 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases). The desk limit is what holds evenness down: with it off the optimizer reaches 93% but the desk gets only 395 lx.
+- **Evenness is scored over the whole face, corner included** (§ camera keepout), so min/avg stays at 0–3% for every layout; the outside-corner value is shown alongside.
+- Reference numbers (`checks/example-variations-output.txt`): see that file for the current whole-face and outside-corner values; at the previous outside-corner scoring, Baseline hex 32% (whole face 1%), CV 20.9%, 373 lm, desk 455 lx; Variation A 48% (0%), CV 21.3%, 402 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases). The desk limit is what holds evenness down: with it off the optimizer reaches 93% but the desk gets only 395 lx.
 - **The board runs about 124 °C (worst case) or 85 °C (best case)**, because the 4.6 W of electronics roughly doubles the heat. LED chips sit about 0.5 °C above the board, right at the 125 °C datasheet limit in the worst case.
 - **The PLA screw bosses touch the board.** At these temperatures they would soften (PLA glass transition about 55–60 °C). This is the biggest physical risk the model now shows.
 - **The camera ring leaks about 0.03–0.1% of the light (about 0.2–0.6 lm) directly**, undiffused: a thin bright ring around the lens. With the corner keepout no LED is near the lens, so the leak is smaller than with the board-footprint keepout.
@@ -151,9 +151,9 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **Clearance:** the original 2.3 mm from LED centre, i.e. 0.06 mm from the LED body.
   - **Drawn as:** a hatched block with a dashed clearance line on the canvas, a dark patch on the board in 3D, and layer `CAMERA_KEEPOUT` in the DXF export.
   - **Contains** the whole 25 × 24 mm camera board, so the board-footprint rule is implied.
-  - **Scoring:** the whole corner is blocked on the prototype (user, 15 Oct), so evenness (min/avg, CV, dimmest 5%) is scored and optimized on the lit face outside it. The whole-face values, corner included, are shown alongside (evenness tile, light panel, checklist, compare, report).
-  - **Why not score the corner:** its far end (58.7, −19.7) is 41.7 mm from the nearest allowed LED position, where one LED gives only 2% of what it gives straight above it (h⁴/(h² + r²)² at h = 17.28 mm). Whole-face min/avg stays at 1–3% for every layout, so it can't guide the optimizer.
-  - **Effect** (CAD geometry, 8,000 iterations; placeable area 7,948 mm², vs 9,350 with the board footprint only):
+  - **Scoring (default since 15 Oct, user):** evenness (min/avg, CV, dimmest 5%) is scored and optimized over the **whole lit face, corner included**: the whole face should look even, even though the corner has no LEDs. Step 1 → "Score evenness over the keepout corner too" (`keep.scoreCorner`) can switch it to outside the corner only. The other value is always shown alongside (tile, light panel, checklist, report).
+  - **Consequence:** the corner's far end (58.7, −19.7) is 41.7 mm from the nearest allowed LED position, where one LED gives only 2% of what it gives straight above it (h⁴/(h² + r²)² at h = 17.28 mm). So whole-face min/avg stays low (about 1–5%) for every layout; CV and the outside-corner value are the more informative comparisons.
+  - **Effect when scoring only outside the corner** (the option; CAD geometry, 8,000 iterations; placeable area 7,948 mm², vs 9,350 with the board footprint only):
 
     | Current, desk limit | Evenness outside corner | Whole face | CV | Light out | Desk min | Board / chip (worst) |
     |---|---|---|---|---|---|---|
@@ -163,7 +163,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
     | 31 mA, on | 88% | 3% | 3.4% | 404 lm | 500 lx | 131 / 132.3 °C |
 
     Without the desk limit the layout is very even. Meeting 500 lx at 25 mA pulls LEDs inward. Meeting both 65% and 500 lx needs about 28 mA, which puts the hottest chip over 125 °C in Ben's worst-case air. So the conflict is now light vs heat, not the keepout.
-  - **Why it isn't the default:** that corner is mostly LED board, not camera. The lens only needs its circle. Confirm with Zoheb/Rizwan which applies.
+  - **Why it is the default:** the user confirmed (15 Oct) that the whole corner is blocked on the new prototype, not just the camera board.
   - **Source:** [DXF]; clearance [Old]/[Mine].
 
 **Clearances (the dotted lines)**
@@ -725,7 +725,7 @@ All from `code/`:
   - heat map vs Ben's network, heat-map energy balance and grid convergence, light budget accounts for every lumen
   - warm-up settles on the steady map, passive-cooling what-ifs behave physically
   - current-sweep bisection matches a full scan with heat-map derating
-  - evenness scored outside the blocked keepout corner, whole face reported too
+  - evenness scored over the whole face by default, outside the corner as an option, both reported
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
 - `node checks/gap21-why.js`: why evenness (outside the keepout corner) stays below 65%. The 500 lx desk limit at 25 mA pulls LEDs inward: 80% at 10 mm, 48% at 17.9 mm, 38% at 21 mm; 94% at 21 mm with the limit off. With the limit on at 21 mm it reaches 69% at 29 mA and 91% at 33 mA, with the board at 129–134 °C worst case.

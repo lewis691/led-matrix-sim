@@ -1,16 +1,16 @@
-gap 10 mm, default                           evenness 80%  CV 8.6%  darkest at (-60, -18): 3.8 mm from wall, 95.3 mm from lens  | evenness ignoring cells < gap from wall 81%
-gap 17.9 mm, default                         evenness 48%  CV 21.3%  darkest at (-51, 42): 3.8 mm from wall, 101.3 mm from lens  | evenness ignoring cells < gap from wall 89%
-gap 21 mm, default                           evenness 38%  CV 32.3%  darkest at (-66, -3): 3.6 mm from wall, 101.7 mm from lens  | evenness ignoring cells < gap from wall 76%
-21 mm, desk limit off                        evenness 94%  CV 4.0%  darkest at (21, 39): 25.3 mm from wall, 49.2 mm from lens  | evenness ignoring cells < gap from wall 95%
+gap 10 mm, default                           evenness 1%  CV 33.9%  darkest at (50, -17): 12.3 mm from wall, 1.1 mm from lens  | evenness ignoring cells < gap from wall 1%
+gap 17.9 mm, default                         evenness 2%  CV 33.1%  darkest at (50, -18): 11.1 mm from wall, 1.8 mm from lens  | evenness ignoring cells < gap from wall 11%
+gap 21 mm, default                           evenness 0%  CV 39.8%  darkest at (48, -20): 10.7 mm from wall, 1.7 mm from lens  | evenness ignoring cells < gap from wall 19%
+21 mm, desk limit off                        evenness 5%  CV 22.1%  darkest at (50, -17): 12.3 mm from wall, 1.1 mm from lens  | evenness ignoring cells < gap from wall 26%
 21 mm, no camera                             evenness 42%  CV 28.7%  darkest at (50, 43): 3.6 mm from wall  | evenness ignoring cells < gap from wall 87%
-21 mm, LEDs allowed right at the wall        evenness 38%  CV 32.3%  darkest at (-4, 66): 3.6 mm from wall, 84.8 mm from lens  | evenness ignoring cells < gap from wall 74%
-21 mm, 5 mm rim not scored (default 0)       evenness 53%  CV 20.2%  darkest at (11, 60): 8.8 mm from wall, 72.7 mm from lens  | evenness ignoring cells < gap from wall 85%
-21 mm, 90 LEDs                               evenness 91%  CV 3.2%  darkest at (18, -30): 4.9 mm from wall, 22.5 mm from lens  | evenness ignoring cells < gap from wall 96%
+21 mm, LEDs allowed right at the wall        evenness 0%  CV 40.4%  darkest at (48, -20): 10.7 mm from wall, 1.7 mm from lens  | evenness ignoring cells < gap from wall 18%
+21 mm, 5 mm rim not scored (default 0)       evenness 4%  CV 27.7%  darkest at (54, -17): 9.1 mm from wall, 5.3 mm from lens  | evenness ignoring cells < gap from wall 25%
+21 mm, 90 LEDs                               evenness 4%  CV 22.8%  darkest at (50, -17): 12.3 mm from wall, 1.1 mm from lens  | evenness ignoring cells < gap from wall 25%
 
 Desk light of the even (limit-off) layout, and current needed with the limit on:
-  17.9 mm, limit off: evenness 95%, light reaching diffuser 62%, light out 320 lm, desk min 397 lx
-  21 mm, limit off: evenness 94%, light reaching diffuser 58%, light out 298 lm, desk min 371 lx
-  21 mm, 27 mA, limit on: evenness 55%, desk min 500 lx, power 4.37 W, board 127 °C worst case (heat map)
-  21 mm, 29 mA, limit on: evenness 69%, desk min 500 lx, power 4.70 W, board 129 °C worst case (heat map)
-  21 mm, 31 mA, limit on: evenness 81%, desk min 500 lx, power 5.02 W, board 132 °C worst case (heat map)
-  21 mm, 33 mA, limit on: evenness 91%, desk min 500 lx, power 5.35 W, board 134 °C worst case (heat map)
+  17.9 mm, limit off: evenness 4%, light reaching diffuser 62%, light out 322 lm, desk min 401 lx
+  21 mm, limit off: evenness 5%, light reaching diffuser 58%, light out 299 lm, desk min 373 lx
+  21 mm, 27 mA, limit on: evenness 2%, desk min 500 lx, power 4.37 W, board 127 °C worst case (heat map)
+  21 mm, 29 mA, limit on: evenness 4%, desk min 500 lx, power 4.70 W, board 129 °C worst case (heat map)
+  21 mm, 31 mA, limit on: evenness 4%, desk min 500 lx, power 5.02 W, board 132 °C worst case (heat map)
+  21 mm, 33 mA, limit on: evenness 5%, desk min 500 lx, power 5.35 W, board 134 °C worst case (heat map)

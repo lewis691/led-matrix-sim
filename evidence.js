@@ -28,7 +28,7 @@ window.HEAD_EVIDENCE = [
   ['Camera barrel / diffuser hole', 'Ø14 / Ø16 (1 mm open ring)', 'cad', 'Head STEP'],
   ['Camera board footprint', '25 × 24 mm at x 30–55, y −21.9…2.1', 'cad', 'Head STEP'],
   ['LED keepout (default)', 'corner x ≥ 19.0, y ≤ 19.22 mm; LED centre ≥ 2.3 mm from it', 'user', 'WT - Lewis.dxf (first model); user: the new prototype uses it'],
-  ['Evenness scored outside the keepout corner', 'whole-face value shown alongside', 'user', 'user, 15 Oct: the whole corner is blocked on the prototype'],
+  ['Evenness scored over the whole lit face', 'keepout corner included; outside-corner value shown alongside (option to score only outside)', 'user', 'user, 15 Oct'],
   ['Screw holes and front bosses', '3 holes; Ø8.6 bosses at TL/TR', 'cad', 'Head STEP (agrees with the DXF to 0.04 mm)'],
   ['Head outline', 'R 69.55, corners R 33.64, bottom R 482.38', 'cad', 'DXF; STEP agrees to 0.05 mm (right corner is R 33.84 in the DXF; the model mirrors the left one)'],
   ['Back-cavity depth map', '5 mm grid, mean 59 mm', 'cad', 'Head STEP ray cast (all 462 cells checked)'],

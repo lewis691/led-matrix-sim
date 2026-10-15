@@ -1,14 +1,14 @@
 
 --- 25 mA (4.05 W at 25 °C), gap 17.9 mm, hex start ---
-hex start                                    | evenness  32% (face 1%) | CV 20.9% | desk min  455 lx (avg 575)
-optimize, limit OFF                          | evenness  93% (face 3%) | CV  3.6% | desk min  395 lx (avg 491) | limit met: NO
-optimize, limit ON                           | evenness  46% (face 0%) | CV 21.4% | desk min  500 lx (avg 620) | limit met: yes
-optimize + joint dimming, limit OFF          | evenness  93% (face 3%) | CV  3.4% | desk min  350 lx (avg 435) | limit met: NO
-optimize + joint dimming, limit ON           | evenness  45% (face 0%) | CV 21.9% | desk min  500 lx (avg 620) | limit met: yes
+hex start                                    | evenness   1% (outside corner 32%) | CV 40.7% | desk min  455 lx (avg 575)
+optimize, limit OFF                          | evenness   3% (outside corner 86%) | CV 24.4% | desk min  401 lx (avg 496) | limit met: NO
+optimize, limit ON                           | evenness   1% (outside corner 38%) | CV 34.0% | desk min  500 lx (avg 618) | limit met: yes
+optimize + joint dimming, limit OFF          | evenness   4% (outside corner 86%) | CV 24.1% | desk min  273 lx (avg 336) | limit met: NO
+optimize + joint dimming, limit ON           | evenness   1% (outside corner 41%) | CV 33.9% | desk min  500 lx (avg 617) | limit met: yes
 
 --- 20 mA (3.24 W at 25 °C), gap 17.9 mm, hex start ---
-hex start                                    | evenness  32% (face 1%) | CV 20.9% | desk min  367 lx (avg 464)
-optimize, limit OFF                          | evenness  93% (face 3%) | CV  3.6% | desk min  319 lx (avg 397) | limit met: NO
-optimize, limit ON                           | evenness   6% (face 0%) | CV 102.8% | desk min  473 lx (avg 578) | limit met: NO (optimizer reported it could not reach the limit)
-optimize + joint dimming, limit OFF          | evenness  93% (face 3%) | CV  3.4% | desk min  282 lx (avg 350) | limit met: NO
-optimize + joint dimming, limit ON           | evenness   6% (face 0%) | CV 100.5% | desk min  472 lx (avg 577) | limit met: NO (optimizer reported it could not reach the limit)
+hex start                                    | evenness   1% (outside corner 32%) | CV 40.7% | desk min  367 lx (avg 464)
+optimize, limit OFF                          | evenness   3% (outside corner 86%) | CV 24.4% | desk min  323 lx (avg 400) | limit met: NO
+optimize, limit ON                           | evenness   0% (outside corner 6%) | CV 108.1% | desk min  473 lx (avg 578) | limit met: NO (optimizer reported it could not reach the limit)
+optimize + joint dimming, limit OFF          | evenness   4% (outside corner 86%) | CV 24.1% | desk min  219 lx (avg 271) | limit met: NO
+optimize + joint dimming, limit ON           | evenness   0% (outside corner 6%) | CV 107.9% | desk min  473 lx (avg 578) | limit met: NO (optimizer reported it could not reach the limit)

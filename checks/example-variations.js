@@ -9,7 +9,7 @@ function report(name, c, pts) {
   const M = E.thermalMap(c, pts), Mb = E.thermalMap(c, pts, { thermalCase: 'best' }), B = E.lightBudget(c, g, pts);
   const L = E.led(c, M.TjMax), desk = E.taskLight(g, F.E, L.flux, c), nb = E.neighbours(pts);
   const ds = nb.pairs.map(q => q.d);
-  console.log(`${name}\n  evenness ${(m.minAvg * 100).toFixed(0)}% (whole face ${(m.minAvgFace * 100).toFixed(0)}%) | variation ${(m.cv * 100).toFixed(1)}% | light out ${(60 * L.flux * m.util * c.tau).toFixed(0)} lm | desk min ${desk.min.toFixed(0)} lx (avg ${desk.avg.toFixed(0)})` +
+  console.log(`${name}\n  evenness ${(m.minAvg * 100).toFixed(0)}% whole face (outside the keepout corner ${(m.minAvgOut * 100).toFixed(0)}%) | variation ${(m.cv * 100).toFixed(1)}% | light out ${(60 * L.flux * m.util * c.tau).toFixed(0)} lm | desk min ${desk.min.toFixed(0)} lx (avg ${desk.avg.toFixed(0)})` +
     ` | board map ${Mb.Tmax.toFixed(0)}–${M.Tmax.toFixed(0)} °C (Ben front-only ${thb.Tboard.toFixed(0)}–${th.Tboard.toFixed(0)}) | LED chip ≤ ${M.TjMax.toFixed(0)} °C | light: out ${(B.out * 100).toFixed(1)}%, walls ${(B.walls * 100).toFixed(1)}%, camera ring ${(B.annulus * 100).toFixed(2)}% | power ${(60 * L.Pel).toFixed(2)} W | LED spacing ${Math.min(...ds).toFixed(1)}–${Math.max(...ds).toFixed(1)} mm (avg ${(ds.reduce((a, b) => a + b) / ds.length).toFixed(1)})`);
 }
 const base = E.defaults(), pl = E.buildPlacer(base);

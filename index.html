@@ -196,7 +196,8 @@ th{color:var(--muted);font-weight:600}
         <label class="f"><span class="lbl">Distance LEDs → diffuser (mm) <span class="q" data-tip="The air gap between the LED board and the diffuser. A bigger gap blends the LEDs into smooth light, but makes the head thicker, and the trapped air insulates the board so it runs hotter.">?</span></span><input type="number" data-k="gap" step="0.5" min="2" max="60"></label>
         <div class="row" style="margin:-2px 0 8px"><span class="hint" style="margin:0">Quick set:</span><button data-gap="17.9" title="Measured in the Head STEP">17.9 mm (CAD)</button><button data-gap="10">10</button><button data-gap="21">21</button><button data-gap="25">25</button></div>
         <label class="chk"><input type="checkbox" data-k="keep.on"> Camera lens in the head <span class="q" data-tip="The camera starts at the centre of the camera board's mounting holes from the DXF. Its barrel reaches the diffuser, so the diffuser there is the lens (no light) and the barrel shades the light passing it. Which area LEDs must stay out of is set below.">?</span></label>
-        <label class="f" style="margin-top:4px"><span class="lbl">Keep LEDs out of <span class="q" data-tip="Original DXF keepout (default, what the new prototype uses): the corner zone drawn in WT - Lewis.dxf (x ≥ 19.0, y ≤ 19.22 mm), with the original 2.3 mm LED-centre clearance. It holds the whole camera board. The whole corner is blocked on the prototype, so evenness is scored outside it. The whole-face value (corner included) is shown alongside: the corner's far end is about 42 mm from any allowed LED position, so it stays near 1–3% whatever the layout. Camera board footprint: only the 25 × 24 mm board from the STEP. Barrel circle only: a what-if. The zone moves with the camera.">?</span></span><select data-k="keep.zone"><option value="dxf">Original DXF keepout zone (corner)</option><option value="module">Camera board footprint (CAD)</option><option value="lens">Barrel circle only (what-if)</option></select></label>
+        <label class="f" style="margin-top:4px"><span class="lbl">Keep LEDs out of <span class="q" data-tip="Original DXF keepout (default, what the new prototype uses): the corner zone drawn in WT - Lewis.dxf (x ≥ 19.0, y ≤ 19.22 mm), with the original 2.3 mm LED-centre clearance. It holds the whole camera board. The whole corner is blocked on the prototype (no LEDs). Evenness is scored over the whole face by default (tick box below); the corner's far end is about 42 mm from any allowed LED position, so whole-face min/avg stays low whatever the layout. Camera board footprint: only the 25 × 24 mm board from the STEP. Barrel circle only: a what-if. The zone moves with the camera.">?</span></span><select data-k="keep.zone"><option value="dxf">Original DXF keepout zone (corner)</option><option value="module">Camera board footprint (CAD)</option><option value="lens">Barrel circle only (what-if)</option></select></label>
+        <label class="chk"><input type="checkbox" data-k="keep.scoreCorner"> Score evenness over the keepout corner too <span class="q" data-tip="On (default): evenness is scored and optimized over the whole lit face, corner included, so the optimizer tries to push light into the dark corner. Off: only outside the corner. The other value is always shown alongside.">?</span></label>
         <div class="grid3" style="margin-top:4px">
           <label class="f"><span class="lbl">Centre x (mm) <span class="q" data-tip="0 is the centre of the head's round top. Or simply drag the camera block on the canvas.">?</span></span><input type="number" id="camCx" step="0.5"></label>
           <label class="f"><span class="lbl">Centre y (mm)</span><input type="number" id="camCy" step="0.5"></label>
@@ -510,9 +511,9 @@ th{color:var(--muted);font-weight:600}
 <div id="tip" role="tooltip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="engine.js?v=26"></script>
+<script src="engine.js?v=27"></script>
 <script src="view3d.js?v=16"></script>
-<script src="evidence.js?v=4"></script>
-<script src="app.js?v=39"></script>
+<script src="evidence.js?v=5"></script>
+<script src="app.js?v=40"></script>
 </body>
 </html>

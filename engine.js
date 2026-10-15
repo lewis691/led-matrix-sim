@@ -386,7 +386,7 @@ function HeadLEDEngine() {
     const p5 = vals.length ? vals[Math.floor(vals.length * 0.05)] : 0;
     const fmean = fn ? fs / fn : 0, fsd = fn ? Math.sqrt(Math.max(0, fs2 / fn - fmean * fmean)) : 0;
     // *Face = the same measures over the whole lit face, including the keepout corner (shown alongside, not optimized)
-    return { mean, min: mn, max: mx, cv: mean ? sd / mean : 0, minAvg: mean ? mn / mean : 0, minAvgFace: fmean ? fmn / fmean : 0, cvFace: fmean ? fsd / fmean : 0, maxMin: mn ? mx / mn : Infinity, p5Avg: mean ? p5 / mean : 0, util: nLed ? all * geo.res * geo.res / nLed : 0 };
+    return { mean, min: mn, max: mx, cv: mean ? sd / mean : 0, minAvg: mean ? mn / mean : 0, minAvgFace: fmean ? fmn / fmean : 0, minFace: fmn, cvFace: fmean ? fsd / fmean : 0, maxMin: mn ? mx / mn : Infinity, p5Avg: mean ? p5 / mean : 0, util: nLed ? all * geo.res * geo.res / nLed : 0 };
   }
 
   // Light on the desk (Ben's Notion method): each diffuser patch is treated as a Lambertian source emitting the light

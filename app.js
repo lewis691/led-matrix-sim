@@ -169,7 +169,7 @@
     if (ov === 'diffuser' && leds.length) {
       const m = res ? res.m : E.metrics(geo, field.E, leds.length);
       let lo, hi;
-      if ($('scale').value === 'mean') { lo = m.mean * 0.6; hi = m.mean * 1.4; } else { lo = m.min; hi = m.max; }
+      if ($('scale').value === 'mean') { lo = m.mean * 0.6; hi = m.mean * 1.4; } else { lo = Math.min(m.min, m.minFace); hi = m.max; }   // range includes the keepout corner
       heatImage(geo, field.E, lo, hi);
       if ($('scale').value === 'mean') legend('Diffuser irradiance (relative to mean)', 60, 140, '%', 0);
       else { const k = (res ? res.L.flux : 1) * 1e6 * cfg.tau; legend('Diffuser exit illuminance', lo * k, hi * k, ' lx', 0); }
@@ -186,7 +186,7 @@
       if (K.zone === 'module' && K.mod) { // camera board + lens holder footprint (STEP)
         const z = E.modPoly(K);
         ctx.save(); ctx.beginPath(); z.forEach(([x, y], i) => i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))); ctx.closePath();
-        ctx.fillStyle = 'rgba(32,38,47,.85)'; ctx.fill(); ctx.clip();
+        const mapOn = $('overlay').value !== 'none' && leds.length; ctx.fillStyle = mapOn ? 'rgba(32,38,47,.12)' : 'rgba(32,38,47,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(201,210,222,.75)'; ctx.lineWidth = 1.5 * dpr; ctx.stroke(); ctx.clip();
         ctx.strokeStyle = 'rgba(201,210,222,.18)'; ctx.lineWidth = dpr; for (let t = -400; t < 400; t += 6) { ctx.beginPath(); ctx.moveTo(sx(t), sy(-60)); ctx.lineTo(sx(t + 140), sy(80)); ctx.stroke(); }
         ctx.restore();
         const g = K.margin; ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.lineWidth = dpr; ctx.strokeStyle = 'rgba(255,200,87,.5)';
@@ -197,7 +197,7 @@
         const z = E.zonePoly(K, geo.poly);
         if (z.length > 2) {
           ctx.save(); ctx.beginPath(); z.forEach(([x, y], i) => i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))); ctx.closePath();
-          ctx.fillStyle = 'rgba(32,38,47,.85)'; ctx.fill(); ctx.clip();
+          const mapOn = $('overlay').value !== 'none' && leds.length; ctx.fillStyle = mapOn ? 'rgba(32,38,47,.12)' : 'rgba(32,38,47,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(201,210,222,.75)'; ctx.lineWidth = 1.5 * dpr; ctx.stroke(); ctx.clip();
           ctx.strokeStyle = 'rgba(201,210,222,.18)'; ctx.lineWidth = dpr; for (let t = -400; t < 400; t += 6) { ctx.beginPath(); ctx.moveTo(sx(t), sy(-60)); ctx.lineTo(sx(t + 140), sy(80)); ctx.stroke(); }
           ctx.restore();
           const X0 = K.x + K.boxDx - K.boxMargin, Y1 = K.y + K.boxDy + K.boxMargin;

@@ -982,6 +982,7 @@ function HeadLEDEngine() {
   // radius and the centre-LED flux together). opt.groups = string index per LED; duties stay in [opt.minDuty, 1].
   function optimize(cfg, leds, opt, progress) {
     opt = opt || {};
+    if (!leds || !leds.length) throw new Error('optimize: no LEDs to place (the start layout is empty; e.g. the hex grid could not fit this count at the minimum pitch)');
     const geo = buildGeo(cfg, opt.res || cfg.res), placer = opt.placer || buildPlacer(cfg), F = Field(geo, cfg); // same grid as the displayed result
     const cam = { ...cfg.keep };
     placer.setCam(cam); setCam(geo, cam);

@@ -1,0 +1,17 @@
+20 LEDs, minimum pitch 22 mm, 21 mm gap, 55 mA, desk limit off
+hex, seed 11       score 0.8136 | evenness whole face 3.3%, outside corner 75.2% | CV 23.3% | desk ok true | 2 s
+hex, seed 23       score 0.8184 | evenness whole face 3.3%, outside corner 76.1% | CV 23.8% | desk ok true | 1 s
+hex, seed 37       score 0.8315 | evenness whole face 3.2%, outside corner 63.8% | CV 25.1% | desk ok true | 1 s
+hex, seed 53       score 0.8161 | evenness whole face 3.4%, outside corner 74.5% | CV 23.6% | desk ok true | 2 s
+hex, seed 69       score 0.8152 | evenness whole face 3.3%, outside corner 78.4% | CV 23.5% | desk ok true | 2 s
+hex, seed 85       score 0.8157 | evenness whole face 3.4%, outside corner 77.3% | CV 23.6% | desk ok true | 2 s
+hex, seed 101      score 0.8201 | evenness whole face 3.3%, outside corner 68.2% | CV 24.0% | desk ok true | 2 s
+hex, seed 117      score 0.8097 | evenness whole face 3.7%, outside corner 75.1% | CV 23.2% | desk ok true | 2 s
+hex, seed 133      score 0.8064 | evenness whole face 3.8%, outside corner 85.7% | CV 22.9% | desk ok true | 2 s
+hex, seed 149      score 0.8294 | evenness whole face 3.3%, outside corner 64.3% | CV 24.9% | desk ok true | 2 s
+hex, seed 165      score 0.8206 | evenness whole face 3.3%, outside corner 64.7% | CV 24.0% | desk ok true | 2 s
+hex, seed 181      score 0.8085 | evenness whole face 3.8%, outside corner 78.1% | CV 23.1% | desk ok true | 2 s
+
+Best: hex, seed 133: score 0.8064 (hex 0.9462) | evenness whole face 3.8% (hex 1.6%), outside corner 85.7% (hex 35.4%) | CV 22.9% (hex 35.6%)
+Spread of the 12 starts: score 0.8064–0.8315
+LEDs breaking a placement limit: 0

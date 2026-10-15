@@ -1,30 +1,30 @@
-Bench predictions: 21 mm gap, 3000 K, 55 mA, 60 LEDs, LED heat only (no Head electronics), room 25 °C
-Per string: 5 × 2.70 V = 13.50 V at 55 mA = 0.743 W; 12 strings = 8.91 W (datasheet Vf at 65 mA; the real Vf at 55 mA is a little lower)
+Bench predictions: 21 mm gap, 3000 K, 55 mA, 20 LEDs (4 strings of 5), min pitch 22 mm, LED heat only (no Head electronics), room 25 °C
+Per string: 5 × 2.70 V = 13.50 V at 55 mA = 0.743 W; 4 strings = 2.97 W (datasheet Vf at 65 mA; the real Vf at 55 mA is a little lower)
 
-Baseline (hex)
-  diffuser evenness (min/avg): whole face 1%, outside the keepout corner 32% | CV 39.4%
-  [worst air] board 116.4–121.5 °C (rise 96.5 K), hottest chip 123.1 °C, diffuser outer surface up to 77.3 °C, Head Back outside 32.6 °C
-               warm-up: 63% of the rise after 11 min, 95% after 36 min | light out 780 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 713 995 677 | 1023 1525 956 | 706 977 664 → mean 915, min 664, max 1525, min/mean 73%
-  [best air] board 79.7–84.8 °C (rise 59.8 K), hottest chip 86.4 °C, diffuser outer surface up to 40.1 °C, Head Back outside 27.0 °C
-               warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 818 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 747 1043 709 | 1071 1597 1002 | 739 1024 696 → mean 959, min 696, max 1597, min/mean 73%
+Baseline (hex): LED spacing 23.3–23.3 mm
+  diffuser evenness (min/avg): whole face 2%, outside the keepout corner 35% | CV 35.6%
+  [worst air] board 62.2–63.8 °C (rise 38.8 K), hottest chip 65.4 °C, diffuser outer surface up to 44.1 °C, Head Back outside 27.8 °C
+               warm-up: 63% of the rise after 13 min, 95% after 42 min | light out 275 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 250 353 243 | 356 536 341 | 244 341 234 → mean 322, min 234, max 536, min/mean 73%
+  [best air] board 45.1–46.7 °C (rise 21.7 K), hottest chip 48.3 °C, diffuser outer surface up to 30.0 °C, Head Back outside 25.7 °C
+               warm-up: 63% of the rise after 7 min, 95% after 21 min | light out 280 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 255 360 248 | 363 547 348 | 249 348 239 → mean 329, min 239, max 547, min/mean 73%
 
-Variation A (hex + foil walls): model = baseline, foil not modelled
-  diffuser evenness (min/avg): whole face 1%, outside the keepout corner 32% | CV 39.4%
-  [worst air] board 116.4–121.5 °C (rise 96.5 K), hottest chip 123.1 °C, diffuser outer surface up to 77.3 °C, Head Back outside 32.6 °C
-               warm-up: 63% of the rise after 11 min, 95% after 36 min | light out 780 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 713 995 677 | 1023 1525 956 | 706 977 664 → mean 915, min 664, max 1525, min/mean 73%
-  [best air] board 79.7–84.8 °C (rise 59.8 K), hottest chip 86.4 °C, diffuser outer surface up to 40.1 °C, Head Back outside 27.0 °C
-               warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 818 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 747 1043 709 | 1071 1597 1002 | 739 1024 696 → mean 959, min 696, max 1597, min/mean 73%
+Variation A (hex + foil walls): model = baseline, foil not modelled: LED spacing 23.3–23.3 mm
+  diffuser evenness (min/avg): whole face 2%, outside the keepout corner 35% | CV 35.6%
+  [worst air] board 62.2–63.8 °C (rise 38.8 K), hottest chip 65.4 °C, diffuser outer surface up to 44.1 °C, Head Back outside 27.8 °C
+               warm-up: 63% of the rise after 13 min, 95% after 42 min | light out 275 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 250 353 243 | 356 536 341 | 244 341 234 → mean 322, min 234, max 536, min/mean 73%
+  [best air] board 45.1–46.7 °C (rise 21.7 K), hottest chip 48.3 °C, diffuser outer surface up to 30.0 °C, Head Back outside 25.7 °C
+               warm-up: 63% of the rise after 7 min, 95% after 21 min | light out 280 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 255 360 248 | 363 547 348 | 249 348 239 → mean 329, min 239, max 547, min/mean 73%
 
-Variation B (optimized, checks/best-layout.json)
-  diffuser evenness (min/avg): whole face 6%, outside the keepout corner 88% | CV 21.9%
-  [worst air] board 117.4–121.1 °C (rise 96.1 K), hottest chip 122.7 °C, diffuser outer surface up to 77.1 °C, Head Back outside 32.6 °C
-               warm-up: 63% of the rise after 11 min, 95% after 36 min | light out 657 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 587 833 579 | 841 1280 824 | 584 824 572 → mean 769, min 572, max 1280, min/mean 74%
-  [best air] board 80.6–84.3 °C (rise 59.3 K), hottest chip 86.0 °C, diffuser outer surface up to 40.0 °C, Head Back outside 27.0 °C
-               warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 688 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 615 873 607 | 881 1341 863 | 612 863 599 → mean 806, min 599, max 1341, min/mean 74%
+Variation B (optimized, checks/best-layout-20.json): LED spacing 22.0–27.9 mm
+  diffuser evenness (min/avg): whole face 4%, outside the keepout corner 86% | CV 22.9%
+  [worst air] board 62.3–63.8 °C (rise 38.8 K), hottest chip 65.4 °C, diffuser outer surface up to 44.1 °C, Head Back outside 27.8 °C
+               warm-up: 63% of the rise after 13 min, 95% after 42 min | light out 234 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 210 297 206 | 300 455 292 | 208 293 203 → mean 274, min 203, max 455, min/mean 74%
+  [best air] board 45.2–46.7 °C (rise 21.7 K), hottest chip 48.3 °C, diffuser outer surface up to 30.0 °C, Head Back outside 25.7 °C
+               warm-up: 63% of the rise after 7 min, 95% after 21 min | light out 238 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 214 303 210 | 306 465 298 | 212 299 207 → mean 279, min 207, max 465, min/mean 74%
 

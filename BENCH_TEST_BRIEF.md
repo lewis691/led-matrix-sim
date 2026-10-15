@@ -1,7 +1,12 @@
 # Bench test brief: Baseline, Variation A, Variation B
 
-**For:** the chat that runs the bench tests. The fixture, probe logger and LED layouts are already built; this brief
-covers only how to run and record the three conditions.
+**For:** the chat that runs the bench tests. The fixture and probe logger are already built; this brief covers the
+three conditions and how to run and record them.
+
+**Bench build: 20 LEDs, 4 strings of 5, at least 22 mm between LED centres.** Hand-wiring needs at least 20–22 mm of
+wire between neighbours, which 60 LEDs can't give (hex pitch 12.9 mm). At 22 mm only about 20–24 LEDs fit the face, so
+all three conditions use the same 20. The model was rerun for exactly this build, so the bench still validates the
+model and the foil effect. It does not reproduce full-Head numbers (a third of the LEDs and power).
 **Sources:** the work-trial brief (`context/Lewis Zhang Work Trial (Oct 14 to 16).pdf`, pp. 3–4) for procedure, and
 the model in `code/` (`checks/bench-predictions.js`) for predictions.
 
@@ -13,17 +18,19 @@ Everything is held constant except the one change in each row.
 
 | ID | Layout | Walls | What it tests |
 |---|---|---|---|
-| **BASE** | Hex grid (app: Layout → Hex grid), 60 LEDs | As built (dark/plain) | Reference |
-| **A** | Same hex grid as BASE | **Aluminium foil on the inner side walls**, shiny side in | Does reflecting the wall light raise light out and edge/corner brightness, and does it change temperature? |
-| **B** | Optimized layout: `code/reports/variation-B-led-coordinates.csv` / `variation-B-layout.dxf` (from `checks/best-layout.js`; report `code/reports/best-layout-21mm-55mA-report.pdf`) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
+| **BASE** | Hex grid, 20 LEDs, 23.3 mm pitch: `code/reports/bench-baseline-and-A-hex-20-led-coordinates.csv` / `-layout.dxf` | As built (dark/plain) | Reference |
+| **A** | Same hex grid as BASE (same files) | **Aluminium foil on the inner side walls**, shiny side in | Does reflecting the wall light raise light out and edge/corner brightness, and does it change temperature? |
+| **B** | Optimized layout, 20 LEDs, 22.0–27.9 mm spacing: `code/reports/bench-B-optimized-20-led-coordinates.csv` / `-layout.dxf` (from `node checks/best-layout.js 20 22`) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
 
 **Held constant for all three (Zoheb's power-budget point):**
-- 60 LEDs (JB2835B), 12 strings × 5, **DC 55 mA per string** (no PWM)
+- 20 LEDs (JB2835B), 4 strings × 5, **DC 55 mA per string** (no PWM), about 2.97 W of LED power
 - **3000 K** parts (record the reel/bag label; the brief warns not to mix F-class and J-class data)
 - **21 mm** board → diffuser gap; the same diffuser sample, enclosure, lid, probe positions and cable routing
 - The camera keepout (DXF corner zone) left empty in every layout
 
-**Variation B layout notes:** coordinates are mm from the dome centre (the same frame as the app and the DXF). The CSV lists each LED's string (12 strings of 5) and nearest-neighbour spacing. The closest pairs are 4.5 mm apart (the model's minimum pitch for the 3.58 × 2.97 mm package), so check the pads leave room to solder. The layout lines LEDs up along the keepout edges to push light into the dark corner, which is what whole-face scoring asks for.
+**Layout files:** coordinates are mm from the dome centre (the same frame as the app and the DXF). Each CSV lists the LED's string (4 strings of 5) and its nearest-neighbour spacing. The hex grid is 23.3 mm everywhere; B's closest pairs are exactly 22.0 mm.
+
+**Report PDFs (model output for each condition, with the other layout alongside):** `code/reports/bench-baseline-hex-20-report.pdf`, `bench-A-hex-20-foil-walls-report.pdf`, `bench-B-optimized-20-report.pdf`. The full-Head 60-LED result is `full-head-60-optimized-report.pdf` (for reference, not built).
 
 **Variation A needs a build record:** foil product and thickness, which faces are covered (side walls only; not the
 board, the diffuser or the keepout), shiny side in, and how it's fixed (tape type). Photograph it. The model has **no**
@@ -34,13 +41,14 @@ result.
 
 ## 2. Before the first power-up
 
-1. **Agree the stop limits with Zoheb/Rizwan and write them down.** The model predicts the board reaching
-   **80–122 °C** at 55 mA (section 5), so limits will likely be reached:
+1. **Agree the stop limits with Zoheb/Rizwan and write them down.** The model predicts the board at **about
+   46–64 °C** with 20 LEDs at 55 mA (section 5):
    - LED chip limit 125 °C (Cree Pro9 datasheet p.4); the chip runs about 1–2 °C above the board.
    - The DS18B20 probes are rated ±0.5 °C only up to 85 °C; their absolute maximum is 125 °C.
-   - Any PLA touching the board softens at about 55–60 °C.
-   - Suggested default until agreed: stop if the board probe reaches 85 °C (the probe accuracy limit), or for any
-     smoke, smell, sensor fault or unstable current.
+   - **Any PLA touching the board softens at about 55–60 °C, and the still-air prediction is 64 °C**, so check what
+     the board sits on.
+   - Suggested default until agreed: stop if the board probe reaches 85 °C, or for any smoke, smell, PLA deforming,
+     sensor fault or unstable current.
 2. **Drive:** use the checked current-regulated bench driver, never raw 24 V on a string. Each string needs about
    5 × 2.7 V = 13.5 V plus the driver's dropout.
 3. **Ramp the current:** 10 mA → 25 mA → 55 mA, checking the probes and string currents at each step.
@@ -57,7 +65,7 @@ result.
    conditions or report the mismatch. Log the supply input power separately.
 5. **Run 30 min** (45 min if time allows). "Settled" means the slope over the final 5 minutes is under
    0.2 °C/min; otherwise report the 30-min value plus the slope. The model expects 63% of the rise after
-   7–11 min and 95% after 20–36 min, so a 30-min run may not be fully settled in still air.
+   7–14 min and 95% after 21–43 min, so a 30-min run may not be fully settled in still air.
 6. **Cool down** to the same starting condition before the next run.
 
 **Run order:** BASE → A → B → BASE (repeat) → the preferred variation (repeat). Report the spread between repeat runs;
@@ -79,31 +87,36 @@ any A or B difference smaller than that spread is inconclusive.
 ## 5. Model predictions to compare against
 
 From `node checks/bench-predictions.js` (output in `checks/bench-predictions-output.txt`): Head geometry at 21 mm,
-3000 K, 55 mA, LED heat only (the 4.6 W of Head electronics isn't in the fixture), room 25 °C. "Still / moving air"
+3000 K, 55 mA, 20 LEDs, LED heat only (the 4.6 W of Head electronics isn't in the fixture), room 25 °C. "Still / moving air"
 are Ben's two air cases.
 
 | | BASE (hex) | A (hex + foil) | B (optimized) |
 |---|---|---|---|
-| LED power (datasheet V_f) | 8.91 W | 8.91 W | 8.91 W |
-| Board hottest, still / moving air | 121.5 / 84.8 °C | not modelled (≈ BASE) | 121.1 / 84.3 °C |
-| Diffuser outer surface max, still / moving air | 77.3 / 40.1 °C | not modelled | 77.1 / 40.0 °C |
-| Warm-up to 95%, still / moving air | 36 / 20 min | — | 36 / 20 min |
-| Diffuser evenness, outside the keepout corner | 32% | not modelled | **88%** |
-| Diffuser evenness, whole face (corner included) | 1% | not modelled | 6% |
-| Lux grid mean, still air | 915 lx | not modelled | 769 lx |
+| LED power (datasheet V_f) | 2.97 W | 2.97 W | 2.97 W |
+| Board hottest, still / moving air | 63.8 / 46.7 °C | not modelled (≈ BASE) | 63.8 / 46.7 °C |
+| Hottest LED chip, still / moving air | 65.4 / 48.3 °C | — | 65.4 / 48.3 °C |
+| Diffuser outer surface max, still / moving air | 44.1 / 30.0 °C | not modelled | 44.1 / 30.0 °C |
+| Warm-up to 95%, still / moving air | 42 / 21 min | — | 43 / 21 min |
+| Diffuser evenness, outside the keepout corner | 35% | not modelled | **86%** |
+| Diffuser evenness, whole face (corner included) | 2% | not modelled | 4% |
+| Diffuser variation (CV) | 35.6% | not modelled | 22.9% |
+| Light out, still air | 275 lm | not modelled | 234 lm |
+| Lux grid mean, still air | 322 lx | not modelled | 274 lx |
 | Lux grid min/mean | 73% | not modelled | 74% |
-| Lux grid centre point | 1525 lx | not modelled | 1280 lx |
+| Lux grid centre point | 536 lx | not modelled | 455 lx |
 
 **How to read these:**
 - **The fixture is not the Head.** Its enclosure, materials and air path differ, so compare **differences between
   conditions** and the **rise above ambient**, not absolute temperatures.
 - **The model predicts no thermal difference between BASE and B** (same power, near-isothermal metal-core board).
   A measured difference bigger than the repeat spread would point to something the model misses.
-- **B trades light for evenness:** it spreads LEDs towards the walls, so about 16% less light reaches the desk while
+- **B trades light for evenness:** it spreads LEDs towards the walls, so about 15% less light reaches the desk while
   the diffuser gets much more even. The desk grid barely changes (73% vs 74%), because at 40 cm the desk light is
   already smooth.
-- **For A:** expect more lux, mostly at the edge grid points, if the foil returns wall light. The model says 31% of
+- **For A:** expect more lux, mostly at the edge grid points, if the foil returns wall light. The model says 32% of
   the LED light currently hits the walls (42% for B).
+- **The light and desk targets (300 lm, 500 lx) are full-Head targets.** 20 LEDs can't meet them; the reports show
+  them as fails, which is expected for this section.
 
 ---
 
@@ -113,7 +126,7 @@ are Ben's two air cases.
   drive/power log (per-string V and I, supply input).
 - File naming, e.g. `2026-10-16_BASE_run1.csv`, `..._A_run1.csv`, `..._B_run1.csv`, `..._BASE_run2.csv`.
 - Lux grid table per condition (LEDs on, LEDs off, net) and the photo set with camera settings.
-- Build records: foil details for A, B as built against `variation-B-led-coordinates.csv` (note any LED moved), sensor-location photos.
+- Build records: foil details for A; BASE and B as built against their coordinate CSVs (note any LED moved); sensor-location photos.
 - A comparison table covering:
   - LED and input power
   - lux mean, min, max and min/mean

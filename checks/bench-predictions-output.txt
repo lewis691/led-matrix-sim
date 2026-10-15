@@ -19,12 +19,12 @@ Variation A (hex + foil walls): model = baseline, foil not modelled
                warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 818 lm
                3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 747 1043 709 | 1071 1597 1002 | 739 1024 696 → mean 959, min 696, max 1597, min/mean 73%
 
-Variation B (optimized)
-  diffuser evenness (min/avg): whole face 5%, outside the keepout corner 83% | CV 22.1%
-  [worst air] board 117.4–121.2 °C (rise 96.2 K), hottest chip 122.8 °C, diffuser outer surface up to 77.1 °C, Head Back outside 32.6 °C
-               warm-up: 63% of the rise after 11 min, 95% after 36 min | light out 660 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 591 837 582 | 846 1286 827 | 587 828 574 → mean 773, min 574, max 1286, min/mean 74%
-  [best air] board 80.6–84.4 °C (rise 59.4 K), hottest chip 86.0 °C, diffuser outer surface up to 40.0 °C, Head Back outside 27.0 °C
-               warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 691 lm
-               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 619 877 609 | 886 1347 867 | 615 867 602 → mean 810, min 602, max 1347, min/mean 74%
+Variation B (optimized, checks/best-layout.json)
+  diffuser evenness (min/avg): whole face 6%, outside the keepout corner 88% | CV 21.9%
+  [worst air] board 117.4–121.1 °C (rise 96.1 K), hottest chip 122.7 °C, diffuser outer surface up to 77.1 °C, Head Back outside 32.6 °C
+               warm-up: 63% of the rise after 11 min, 95% after 36 min | light out 657 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 587 833 579 | 841 1280 824 | 584 824 572 → mean 769, min 572, max 1280, min/mean 74%
+  [best air] board 80.6–84.3 °C (rise 59.3 K), hottest chip 86.0 °C, diffuser outer surface up to 40.0 °C, Head Back outside 27.0 °C
+               warm-up: 63% of the rise after 7 min, 95% after 20 min | light out 688 lm
+               3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 615 873 607 | 881 1341 863 | 612 863 599 → mean 806, min 599, max 1341, min/mean 74%
 

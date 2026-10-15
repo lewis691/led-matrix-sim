@@ -8,11 +8,11 @@ const path = require('path');
 const E = require(path.join(__dirname, '..', 'engine.js'))();
 const c = E.defaults(); c.gap = 21; c.cct = 3000; c.current = 55; c.elecW = 0; c.camW = 0; c.elecSpots = [];
 const pl = E.buildPlacer(c), H = E.hex(c, pl, 60);
-const B = E.optimize(c, H, { iters: 15000, seed: 11, deskLimit: true }).pts;
+const B = require(path.join(__dirname, 'best-layout.json')).leds;   // Variation B = the chosen layout from checks/best-layout.js
 const f = (v, d = 1) => v.toFixed(d);
 console.log(`Bench predictions: ${c.gap} mm gap, ${c.cct} K, ${c.current} mA, 60 LEDs, LED heat only (no Head electronics), room ${c.ambient} °C`);
 console.log(`Per string: 5 × ${f(c.vf, 2)} V = ${f(5 * c.vf, 2)} V at ${c.current} mA = ${f(5 * c.vf * c.current / 1000, 3)} W; 12 strings = ${f(12 * 5 * c.vf * c.current / 1000, 2)} W (datasheet Vf at 65 mA; the real Vf at 55 mA is a little lower)\n`);
-for (const [name, pts] of [['Baseline (hex)', H], ['Variation A (hex + foil walls): model = baseline, foil not modelled', H], ['Variation B (optimized)', B]]) {
+for (const [name, pts] of [['Baseline (hex)', H], ['Variation A (hex + foil walls): model = baseline, foil not modelled', H], ['Variation B (optimized, checks/best-layout.json)', B]]) {
   const g = E.buildGeo(c, c.res), F = E.Field(g, c); F.setAll(pts);
   const m = E.metrics(g, F.E, 60);
   console.log(name);

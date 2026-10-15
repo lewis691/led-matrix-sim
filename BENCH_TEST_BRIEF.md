@@ -15,13 +15,15 @@ Everything is held constant except the one change in each row.
 |---|---|---|---|
 | **BASE** | Hex grid (app: Layout → Hex grid), 60 LEDs | As built (dark/plain) | Reference |
 | **A** | Same hex grid as BASE | **Aluminium foil on the inner side walls**, shiny side in | Does reflecting the wall light raise light out and edge/corner brightness, and does it change temperature? |
-| **B** | Optimized layout (from the model) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
+| **B** | Optimized layout: `code/reports/variation-B-led-coordinates.csv` / `variation-B-layout.dxf` (from `checks/best-layout.js`; report `code/reports/best-layout-21mm-55mA-report.pdf`) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
 
 **Held constant for all three (Zoheb's power-budget point):**
 - 60 LEDs (JB2835B), 12 strings × 5, **DC 55 mA per string** (no PWM)
 - **3000 K** parts (record the reel/bag label; the brief warns not to mix F-class and J-class data)
 - **21 mm** board → diffuser gap; the same diffuser sample, enclosure, lid, probe positions and cable routing
 - The camera keepout (DXF corner zone) left empty in every layout
+
+**Variation B layout notes:** coordinates are mm from the dome centre (the same frame as the app and the DXF). The CSV lists each LED's string (12 strings of 5) and nearest-neighbour spacing. The closest pairs are 4.5 mm apart (the model's minimum pitch for the 3.58 × 2.97 mm package), so check the pads leave room to solder. The layout lines LEDs up along the keepout edges to push light into the dark corner, which is what whole-face scoring asks for.
 
 **Variation A needs a build record:** foil product and thickness, which faces are covered (side walls only; not the
 board, the diffuser or the keepout), shiny side in, and how it's fixed (tape type). Photograph it. The model has **no**
@@ -83,21 +85,21 @@ are Ben's two air cases.
 | | BASE (hex) | A (hex + foil) | B (optimized) |
 |---|---|---|---|
 | LED power (datasheet V_f) | 8.91 W | 8.91 W | 8.91 W |
-| Board hottest, still / moving air | 121.5 / 84.8 °C | not modelled (≈ BASE) | 121.2 / 84.4 °C |
+| Board hottest, still / moving air | 121.5 / 84.8 °C | not modelled (≈ BASE) | 121.1 / 84.3 °C |
 | Diffuser outer surface max, still / moving air | 77.3 / 40.1 °C | not modelled | 77.1 / 40.0 °C |
 | Warm-up to 95%, still / moving air | 36 / 20 min | — | 36 / 20 min |
-| Diffuser evenness, outside the keepout corner | 32% | not modelled | **83%** |
-| Diffuser evenness, whole face (corner included) | 1% | not modelled | 5% |
-| Lux grid mean, still air | 915 lx | not modelled | 773 lx |
+| Diffuser evenness, outside the keepout corner | 32% | not modelled | **88%** |
+| Diffuser evenness, whole face (corner included) | 1% | not modelled | 6% |
+| Lux grid mean, still air | 915 lx | not modelled | 769 lx |
 | Lux grid min/mean | 73% | not modelled | 74% |
-| Lux grid centre point | 1525 lx | not modelled | 1286 lx |
+| Lux grid centre point | 1525 lx | not modelled | 1280 lx |
 
 **How to read these:**
 - **The fixture is not the Head.** Its enclosure, materials and air path differ, so compare **differences between
   conditions** and the **rise above ambient**, not absolute temperatures.
 - **The model predicts no thermal difference between BASE and B** (same power, near-isothermal metal-core board).
   A measured difference bigger than the repeat spread would point to something the model misses.
-- **B trades light for evenness:** it spreads LEDs towards the walls, so about 15% less light reaches the desk while
+- **B trades light for evenness:** it spreads LEDs towards the walls, so about 16% less light reaches the desk while
   the diffuser gets much more even. The desk grid barely changes (73% vs 74%), because at 40 cm the desk light is
   already smooth.
 - **For A:** expect more lux, mostly at the edge grid points, if the foil returns wall light. The model says 31% of
@@ -111,7 +113,7 @@ are Ben's two air cases.
   drive/power log (per-string V and I, supply input).
 - File naming, e.g. `2026-10-16_BASE_run1.csv`, `..._A_run1.csv`, `..._B_run1.csv`, `..._BASE_run2.csv`.
 - Lux grid table per condition (LEDs on, LEDs off, net) and the photo set with camera settings.
-- Build records: foil details for A, B's LED coordinates (app export), sensor-location photos.
+- Build records: foil details for A, B as built against `variation-B-led-coordinates.csv` (note any LED moved), sensor-location photos.
 - A comparison table covering:
   - LED and input power
   - lux mean, min, max and min/mean

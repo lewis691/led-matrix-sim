@@ -30,6 +30,8 @@ Everything is held constant except the one change in each row.
 
 **Layout files:** coordinates are mm from the dome centre (the same frame as the app and the DXF). Each CSV lists the LED's string (4 strings of 5) and its nearest-neighbour spacing. The hex grid is 23.3 mm everywhere; B's closest pairs are exactly 22.0 mm.
 
+**String maps (print at 100 % / actual size; the 50 mm bar checks the scale):** `code/reports/bench-string-maps.pdf`, with a front page (LED side) and a back page (mirrored, for wiring behind the board) per layout. The 4 strings of 5 are colour-coded and numbered along the chain from "start", with each wire's centre-to-centre length. Strings are grouped for the least total wire, and no wire crosses the camera keepout: hex wires are all 23.3 mm, B's are 22–30 mm. The CSVs carry the same string and position columns. All strings run at the same 55 mA, so the grouping doesn't change any prediction.
+
 **Report PDFs (model output for each condition, with the other layout alongside):** `code/reports/bench-baseline-hex-20-report.pdf`, `bench-A-hex-20-foil-walls-report.pdf`, `bench-B-optimized-20-report.pdf`. The full-Head 60-LED result is `full-head-60-optimized-report.pdf` (for reference, not built).
 
 **Variation A needs a build record:** foil product and thickness, which faces are covered (side walls only; not the

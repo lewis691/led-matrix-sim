@@ -1,0 +1,16 @@
+hex, seed 11       score 0.7890 | evenness whole face 5.1%, outside corner 87.7% | CV 22.0% | desk ok true | 6 s
+hex, seed 23       score 0.7898 | evenness whole face 5.1%, outside corner 89.7% | CV 22.0% | desk ok true | 7 s
+hex, seed 37       score 0.7851 | evenness whole face 5.8%, outside corner 82.8% | CV 22.0% | desk ok true | 7 s
+Poisson+CVT 101    score 0.7886 | evenness whole face 5.6%, outside corner 82.1% | CV 22.2% | desk ok true | 7 s
+Poisson+CVT 198    score 0.7861 | evenness whole face 6.0%, outside corner 88.8% | CV 22.2% | desk ok true | 8 s
+Poisson+CVT 295    score 0.7842 | evenness whole face 5.9%, outside corner 81.8% | CV 22.0% | desk ok true | 8 s
+Poisson+CVT 392    score 0.7849 | evenness whole face 6.0%, outside corner 81.9% | CV 22.1% | desk ok true | 8 s
+Poisson+CVT 489    score 0.7861 | evenness whole face 5.7%, outside corner 83.4% | CV 22.1% | desk ok true | 7 s
+Poisson+CVT 586    score 0.7892 | evenness whole face 5.0%, outside corner 82.3% | CV 21.9% | desk ok true | 7 s
+Poisson+CVT 683    score 0.7898 | evenness whole face 5.0%, outside corner 81.2% | CV 22.0% | desk ok true | 7 s
+Poisson+CVT 780    score 0.7911 | evenness whole face 5.0%, outside corner 81.3% | CV 22.1% | desk ok true | 7 s
+Poisson+CVT 877    score 0.7898 | evenness whole face 5.0%, outside corner 82.0% | CV 22.0% | desk ok true | 8 s
+
+Best: Poisson+CVT 295 + 60k-iteration polish: score 0.7814 (hex 0.9892) | evenness whole face 6.2% (hex 0.8%), outside corner 87.7% (hex 32.5%) | CV 21.9% (hex 39.4%)
+Spread of the 12 starts: score 0.7842–0.7911
+LEDs breaking a placement limit: 0

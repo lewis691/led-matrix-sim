@@ -28,6 +28,7 @@ button:disabled{opacity:.45;cursor:default}
 select,input[type=number],input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%;min-width:0}
 input[type=range]{width:100%;accent-color:var(--accent)}
 .chk-t{width:100%;border-collapse:collapse;font-size:12px}.chk-t th,.chk-t td{text-align:left;padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.evid{max-height:320px;overflow:auto;margin-top:6px}.evid table{width:100%;border-collapse:collapse;font-size:11.5px}.evid td{padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.evid .k{white-space:nowrap;font-weight:600;font-size:10.5px}.ev-datasheet,.ev-cad,.ev-ben,.ev-paper,.ev-schematic,.ev-brief,.ev-derived{color:var(--good)}.ev-assumed{color:var(--warn)}.ev-user{color:#b197fc}.ev-knowledge{color:#74c0fc}
+.tor{display:grid;grid-template-columns:150px 1fr 92px;gap:6px;align-items:center;font-size:11.5px;margin:3px 0}.tor .tb{position:relative;height:12px;background:rgba(160,180,210,.1);border-radius:3px}.tor .tb i{position:absolute;top:0;bottom:0;background:#ff8a3d;border-radius:3px}.tor .tb b{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff}.tor .tv{text-align:right}
 .chk-t .fixbtn{font-size:11px;padding:2px 6px;white-space:nowrap}.chk-t .src{color:var(--muted,#8b96a8);font-size:11px}
 .bad{color:var(--bad)!important}.good{color:var(--good)!important}.warn{color:var(--warn)!important}
 
@@ -383,7 +384,17 @@ th{color:var(--muted);font-weight:600}
             <label class="f"><span class="lbl">Motor heat into the head (W) <span class="q" data-tip="Not in your table. It would enter through the Head Back motor cup.">?</span></span><input type="number" data-k="motorW" step="0.1" min="0"></label>
             <label class="f"><span class="lbl">PLA limit (°C) <span class="q" data-tip="PLA's glass transition is about 55–60 °C; above it the bosses and shell soften.">?</span></span><input type="number" data-k="plaMax" step="1"></label>
           </div>
+          <label class="f"><span class="lbl">Electronics hot spots <span class="q" data-tip="Where the big parts sit, once the board layout is known. One per line: name, x, y, watts[, size mm]. Their watts are part of 'Electronics heat'; the rest stays spread evenly. Coordinates as on the canvas (hover to read them). Empty = spread evenly.">?</span></span><textarea id="elecSpots" rows="3" placeholder="SoC, -20, 20, 2.4, 14&#10;DC/DC, 20, 40, 1.2, 10" style="width:100%;font-family:ui-monospace,monospace;font-size:12px"></textarea></label>
         </details>
+        <h3 style="margin-top:12px">Warm-up <span class="q" data-tip="How the temperatures rise after switch-on: a 3-node model (board, diffuser, shell) using the map's conductances and heat capacities from the STEP volumes and typical material values (aluminium, PC, PLA; assumed). Tells you how long a bench run must last to reach steady state.">?</span></h3>
+        <canvas id="warmChart" width="330" height="140" style="width:100%;max-width:420px"></canvas>
+        <p class="hint" id="warmInfo"></p>
+        <h3 style="margin-top:12px">Passive cooling what-ifs <span class="q" data-tip="The same heat map with one change at a time (typical material values, assumed). Shows which passive change actually moves the board temperature.">?</span></h3>
+        <div class="row"><button id="runWhatifs">Compare cooling options</button><span class="hint" id="whatifStatus" style="margin:0"></span></div>
+        <div id="whatifs" class="evid"></div>
+        <h3 style="margin-top:12px">Which assumption matters most <span class="q" data-tip="Each uncertain input moved to the low and high end of its range, one at a time, with everything else unchanged. The longest bars are what to pin down first (measure it, or ask).">?</span></h3>
+        <div class="row"><button id="runUnc">Run sensitivity</button><span class="hint" id="uncStatus" style="margin:0"></span></div>
+        <div id="unc"></div>
         <h3 style="margin-top:12px">Ben's network (reference) <span class="q" data-tip="Ben's published hand calculation, unchanged: LED heat only, through the front only.">?</span></h3>
         <div class="readout" id="benKv"></div>
       </div>
@@ -410,6 +421,8 @@ th{color:var(--muted);font-weight:600}
       <div class="block">
         <h3>Export</h3>
         <div class="row">
+          <button class="primary" id="saveReport" title="One-page-per-section report of this design and every snapshot: light, heat, what-ifs, checklist, assumptions, LED positions. Opens in a new tab; print it to PDF.">📄 Report</button>
+          <button id="saveReportFile" title="Download the report as an HTML file instead">Report (.html)</button>
           <button id="saveCsv" title="Position, string and dimming of every LED">LED positions (CSV)</button>
           <button id="saveDxf" title="Outline, camera and LED bodies for CAD">CAD drawing (DXF)</button>
           <button id="saveSpacing" title="Distance between every pair of neighbouring LEDs">LED spacing (CSV)</button>
@@ -455,7 +468,8 @@ th{color:var(--muted);font-weight:600}
         <div class="legend" id="legend"><div id="legTitle"></div><canvas id="legBar" width="180" height="9"></canvas><div style="display:flex;justify-content:space-between"><span id="legLo"></span><span id="legHi"></span></div></div>
         <div id="v3d" style="display:none">
           <div class="v3bar">
-            <label>Scene <select id="v3scene"><option value="diagram">Diagram (compare)</option><option value="room">Bedroom nightstand (realistic)</option></select></label>
+            <label>Scene <select id="v3scene"><option value="diagram">Diagram (compare)</option><option value="room">Bedroom nightstand (realistic)</option><option value="cutaway">Heat cutaway (section)</option></select></label>
+            <span id="v3cutOpts" style="display:none"><label title="Where the section is cut (model y, mm). 17 = through the middle; −13 = through the camera.">Cut at y <input type="range" id="v3cutY" min="-30" max="60" step="1" value="17" style="width:90px"></label> <button data-v3cam="cut">Section view</button></span>
             <span id="v3diagOpts"><label>Look <select id="v3mode"><option value="spots">Hot &amp; dark spots (% from average)</option><option value="abs">Brightness (one shared scale)</option><option value="real">Real look (camera)</option></select></label>
             <label id="v3rangeL">full colour at <select id="v3range"><option value="10">±10%</option><option value="25" selected>±25%</option><option value="50">±50%</option></select></label>
             <span id="v3realOpts" style="display:none"><label>expose for <select id="v3expose"><option value="diffuser">diffuser</option><option value="desk">desk</option></select></label> <label>brightness <input type="range" id="v3ev" min="-4" max="4" step="0.25" value="0" style="width:70px"></label></span>
@@ -497,8 +511,8 @@ th{color:var(--muted);font-weight:600}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="engine.js?v=23"></script>
-<script src="view3d.js?v=13"></script>
-<script src="evidence.js?v=1"></script>
-<script src="app.js?v=32"></script>
+<script src="view3d.js?v=16"></script>
+<script src="evidence.js?v=2"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

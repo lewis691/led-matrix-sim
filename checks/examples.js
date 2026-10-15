@@ -242,5 +242,24 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
     Math.abs(sum - 1) < 1e-9 && Math.abs(B.diffuser - m.util) < 1e-6 && B.annulus > 0);
 }
 
+// 23. Warm-up model settles on the steady heat map (same conductances, so the end value must match), and the time
+//     constants are positive and ordered
+{
+  const pts = E.hex(cfg, placer, 60), M = E.thermalMap(cfg, pts), w = E.warmUp(cfg, M, { tEnd: 6 * 3600 }), end = w.board[w.board.length - 1];
+  check('23. Warm-up settles on the steady heat map', 'Lumped RC model with the heat map\'s conductances (energy balance at steady state)',
+    `board average → ${f(M.Tavg, 1)} °C; 63 % time < 95 % time`, `${f(end, 1)} °C after 6 h; t63 ${f(w.t63 / 60, 1)} min, t95 ${f(w.t95 / 60, 1)} min`,
+    Math.abs(end - M.Tavg) < 1.0 && w.t63 > 0 && w.t95 > w.t63);
+}
+
+// 24. What-ifs move the right way: removing heat or adding a better heat path never makes the board hotter;
+//     the boss path with PLA bosses is limited by spreading in the PLA shell (aluminium standoffs alone help little)
+{
+  const pts = E.hex(cfg, placer, 60), base = E.thermalMap(cfg, pts).Tmax, r = {};
+  for (const w of E.WHATIFS) r[w.key] = E.whatIf(cfg, pts, w.key).Tmax;
+  const ok = ['paint', 'standoffs', 'pcShell', 'alShell', 'typical', 'noElec', 'combo'].every(k => r[k] <= base + 0.05) && r.noElec < r.typical && r.combo < r.paint && base - r.standoffs < 5;
+  check('24. Passive-cooling what-ifs behave physically', 'Monotonic heat paths; radial spreading in a thin wall ln(R/r)/(2πkt)',
+    'every option ≤ base; no electronics < typical; combination < paint alone; standoffs alone < 5 °C gain', Object.entries(r).map(([k, v]) => `${k} ${f(v, 0)}`).join(', ') + ` (base ${f(base, 0)} °C)`, ok);
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;

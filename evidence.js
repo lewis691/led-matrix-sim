@@ -54,6 +54,10 @@ window.HEAD_EVIDENCE = [
   ['FR4 comparison', 'in-plane k 0.8, 1.6 mm', 'assumed', 'typical laminate value (comparison only)'],
   ['Back-cavity and shell model', 'k_air Nu/L + radiation; wall t/kA; outside h + radiation', 'derived', "same forms as Ben's front network, applied to STEP geometry"],
   ['Motor heat', '0 W', 'user', 'not in your table'],
+  ['Boss → shell spreading', 'ln(R/4.3 mm)/(2π k t), R = equal share of the shell inside area', 'derived', 'radial conduction in a thin wall (textbook); the equal-share radius is assumed'],
+  ['Heat capacities (warm-up)', 'Al 2700 kg/m³ × 900, PC 1200 × 1200, PLA 1240 × 1800 J/kg·K', 'assumed', 'typical material values; volumes from the STEP'],
+  ['What-if materials', 'black back ε 0.9, Al standoffs/shell k 138, PC k 0.2, anodised ε 0.85', 'assumed', "typical values; PC k is Ben's value"],
+  ['Sensitivity ranges', 'e.g. back ε 0.05–0.9, PLA k 0.10–0.20, Al 1–2 mm, room 20–30 °C', 'assumed', "typical spreads; air cases from Ben, power range from your table"],
   // ---- display only (3D)
   ['Desk reflectance (Real look only)', '0.5', 'assumed', 'display only'],
   ['LED colour on screen', 'blackbody fit', 'knowledge', 'Tanner Helland approximation (display only)'],

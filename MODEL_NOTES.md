@@ -376,6 +376,56 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 - **Not modelled:** the Head Front walls as a separate path; air movement between the two cavities through the board windows and edge gap; heat from light absorbed on the walls; contact resistances at the bosses; where on the board the electronics actually sit.
 - **Source:** [Ben-Heat] front path and cases; [STEP] geometry; [User] materials and power; k_PLA, ε, aluminium/dielectric values [Textbook] typical (assumed). **Changed:** new; replaces "one board temperature".
 
+**Boss → shell spreading (added with the what-ifs)**
+- **Why:** treating the PLA shell as one temperature let heat entering at a small boss reach the whole shell for free. That made aluminium standoffs look like a 60 °C fix.
+- **Now:** each boss path = boss column L/(kA) + radial spreading into the 3 mm wall, ln(R/r_b)/(2π k t) [Textbook], with r_b = 4.3 mm (STEP) and R = the radius of an equal share of the shell's inside area (ASSUMED share).
+- **Effect:** about 1,000 K/W per boss in PLA, so the bosses carry about 0.3 W and the board is about 124 °C (was 119). Aluminium standoffs alone now help about 2 °C; they only pay off with a conductive shell (check 24).
+
+**Warm-up (step 4)**
+- **Model:** a lumped 3-node RC network (board, diffuser, shell).
+  - Conductances: from the steady map (Ben's air-gap and diffuser/outside resistances, the map's board → shell and shell → room values).
+  - Heat capacities: STEP volumes × typical material values (ASSUMED: aluminium 2700 kg/m³ × 900 J/kg·K, PC 1200 × 1200, PLA 1240 × 1800).
+  - Implicit Euler.
+- **Result (worst case):** 63% of the rise after about 11 min, 95% after about 35 min. Bench runs need at least that long.
+- **Check 23:** it settles on the steady map's board average.
+
+**Passive-cooling what-ifs (step 4)**
+- **How:** the full map rerun with one change each (typical values, ASSUMED):
+  - board back black (ε 0.1 → 0.9)
+  - aluminium standoffs
+  - Head Back in PC or aluminium
+  - electronics at typical power (2.0 W, your table) or off the board
+  - a combination
+- **Worst-case results:**
+
+  | Option | Board |
+  |---|---|
+  | Black back | 91 °C |
+  | Standoffs alone | 122 °C |
+  | Aluminium Head Back | 119 °C |
+  | Typical electronics | 98 °C |
+  | No electronics | 75 °C |
+  | Black back + standoffs + aluminium Head Back | 58 °C |
+- **Lesson:** the back cavity is radiation-limited, so the board-back finish is the cheapest big lever.
+
+**Which assumption matters most (step 4)**
+- **How:** each uncertain input moved to its low/high end, one at a time, shown as a sensitivity bar chart.
+- **Worst case, largest first:**
+
+  | Input | Board range |
+  |---|---|
+  | Air movement (Ben's cases) | 85–124 °C |
+  | Board-back emissivity | 129–91 °C |
+  | Electronics power | 98–124 °C |
+  | Room temperature | 122–127 °C |
+  | k_h | 123–126 °C |
+
+  The PLA conductivity, aluminium thickness and shell emissivity matter little. So: pin down the back finish and the real air movement, i.e. measure.
+
+**Electronics hot spots (step 4 → Board and electronics)**
+- **What:** "name, x, y, W[, size]" lines place parts of the electronics power on squares; the rest stays even.
+- **Example:** a 2.4 W SoC on 14 mm raises the hottest point by about 3 °C on the metal-core board.
+
 **Ben's network (reference, unchanged)**
 - **Network** (heat leaves through the **front only**, Ben's conservative assumption):
   - **Air gap:** R_conv = L / (k_air·A·Nu), in parallel with radiation R_rad = 1 / (ε_PCB·σ·A·(T₁² + T₂²)(T₁ + T₂)).
@@ -604,6 +654,22 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   Everything the model doesn't compute is plain grey: Head Front, camera, neck, motor, furniture, room. No temperature is invented for them.
 - **Source:** thermalMap (§5). **Changed:** new.
 
+**Heat cutaway (3D → Scene → Heat cutaway)**
+- **What:** a section through the head, movable with a slider: the LED board and diffuser per cell, the screw bosses and Head Back (lumped), on one °C scale.
+- **Labels:** temperatures, including bosses flagged above the PLA limit, and heat-flow arrows in W (front, back cavity, bosses).
+- **Not modelled, so grey:** Head Front and camera. Cavity air is not drawn.
+- **Thermal camera (nightstand):** its scale is now fitted to the visible surfaces (room → diffuser surface), and it opens in a close-up of the lamp. It still only shows what an IR camera would see from outside; the cutaway is the view that explains the heat.
+
+**Report (step 5 → 📄 Report)**
+- **What:** one click builds a printable report (print → Save as PDF) from the current model:
+  - summary of pass/fail and the biggest passive lever
+  - every design and snapshot recomputed side by side
+  - light and heat map images and the 3D view
+  - where the light goes, heat numbers, the warm-up curve, what-ifs and sensitivity (if run)
+  - the constraint checklist with sources
+  - every assumed value, the LED-position build record, and a short methods/sources list
+- "Report (.html)" downloads it instead.
+
 **Other usability additions**
 - **Cursor readout:** hovering the canvas shows the board and diffuser-surface temperature (🌡 Heat), or brightness as % of average and lx (☀ Light).
 - **Fix buttons:** each failed checklist row offers the tool that addresses it: Find current, Optimize, See heat.
@@ -634,13 +700,14 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 ## 9. Checks you can run
 
 All from `code/`:
-- `node checks/examples.js`: 22 checks with source, expected and actual values:
+- `node checks/examples.js`: 24 checks with source, expected and actual values:
   - light formula, energy conservation, Moreno spacing, Yang ripple
   - Ben's heat calc, Hui's equations, driver limits
   - Randomize, Even out, Optimize, dimming
   - lens clearance, spacing table, desk light, desk limit
   - colour-temperature flux vs datasheet, lowest-current search, constraint checklist, room light
   - heat map vs Ben's network, heat-map energy balance and grid convergence, light budget accounts for every lumen
+  - warm-up settles on the steady map, passive-cooling what-ifs behave physically
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
 - `node checks/gap21-why.js`: why 21 mm stays below 65% evenness. The 500 lx desk limit at 25 mA forces LEDs inward, because walls absorb 39% of the light at 21 mm. With the limit off: 94%. With the limit on, it reaches 72% at 27 mA and 94% at 31 mA.

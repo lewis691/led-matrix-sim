@@ -101,11 +101,21 @@ PASS  20. Heat map reduces to Ben's network
 PASS  21. Heat map conserves energy; grid converged
       source:   Energy conservation; grid refinement
       expected: out = in = 8.042 W (LEDs 3.44 + electronics 4.60); hottest point within 0.5 °C on a finer grid
-      got:      out 8.042 W (front 5.44, back 1.71, bosses 0.89); 119.01 vs 118.97 °C
+      got:      out 8.042 W (front 5.84, back 1.86, bosses 0.34); 123.88 vs 123.83 °C
 
 PASS  22. Light budget accounts for every lumen
       source:   Energy conservation; STEP geometry (aperture, camera ring)
       expected: shares sum to 100 %; diffuser share = light landing on the aperture in the field model
       got:      diffuser 71.68% (field 71.68%), walls 27.49%, camera 0.72%, ring 0.103% → 100.000%
 
-22 passed, 0 failed
+PASS  23. Warm-up settles on the steady heat map
+      source:   Lumped RC model with the heat map's conductances (energy balance at steady state)
+      expected: board average → 123.4 °C; 63 % time < 95 % time
+      got:      123.4 °C after 6 h; t63 11.0 min, t95 35.0 min
+
+PASS  24. Passive-cooling what-ifs behave physically
+      source:   Monotonic heat paths; radial spreading in a thin wall ln(R/r)/(2πkt)
+      expected: every option ≤ base; no electronics < typical; combination < paint alone; standoffs alone < 5 °C gain
+      got:      paint 91, standoffs 122, pcShell 123, alShell 119, typical 98, noElec 75, combo 58 (base 124 °C)
+
+24 passed, 0 failed

@@ -13,7 +13,7 @@ py -m http.server 8765 --bind 127.0.0.1
 Run this from the `code/` folder, then open <http://localhost:8765>. A short walkthrough starts on the first visit;
 replay it with **? Walkthrough**.
 
-Proof that each feature works, checked against its source (22 checks, ~1 min):
+Proof that each feature works, checked against its source (24 checks, ~1 min):
 
 ```powershell
 node checks/examples.js
@@ -30,7 +30,9 @@ node checks/examples.js
    optimize string dimming at the same time.
 3. **Light & dimming**: diffuser transmission, brightness readouts, per-string PWM dimming with Auto-balance.
 4. **Heat**: Ben's heat-calc network (worst / best / custom case) and Hui's LED chip temperature.
-5. **Compare & export**: constraint checklist (each limit with its source); snapshots side by side; LED CSV (positions from the head's left/bottom edges, nearest
+4b. **Heat tools** (step 4): board heat map, warm-up curve, passive-cooling what-ifs, which-assumption-matters-most chart,
+   electronics hot spots.
+5. **Compare & export**: 📄 one-click report (print to PDF); evidence table; constraint checklist (each limit with its source); snapshots side by side; LED CSV (positions from the head's left/bottom edges, nearest
    neighbour), LED spacing CSV, DXF with LED-to-LED distances. Tick **spacing** above the canvas to see distances.
 
 **🧊 3D** (above the canvas): the head, its light and the desk 40 cm below, drawn from the model's own numbers. Tick
@@ -79,7 +81,7 @@ maintenance, crowding, current sweep, checklist, modes) is justified one by one 
 - `assets/cad/*.stl`: Head STEP meshes (copied from `context/step_extract/meshes`), used by the 3D view at the CAD gap.
 - `engine.js`: geometry, light model, desk light, thermal, generators, optimizer, strings, exports. It runs in the
   browser, the background worker and Node.
-- `checks/examples.js` (+ `examples-output.txt`): 22 source-checked proofs.
+- `checks/examples.js` (+ `examples-output.txt`): 24 source-checked proofs.
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%, with the lowest current meeting targets.
 - `checks/example-variations.js` (+ output): reference numbers for the Baseline / A / B walkthrough.
 - `checks/desk-limit.js` (+ output): the 500 lx desk limit at 25 and 20 mA.

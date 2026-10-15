@@ -68,6 +68,11 @@ function HeadLEDEngine() {
       // shell: PLA (user), opaque. k 0.13 W/mK, emissivity 0.9 (textbook values, ASSUMED), 3.0 mm walls (STEP).
       // PLA softens near its glass transition (about 55-60 C), so parts touching the board are checked against 55 C.
       kPla: 0.13, epsShell: 0.9, plaMax: 55,
+      bossK: null,          // screw-boss material k (null = PLA). What-if: aluminium standoffs (138)
+      shellK: null,         // Head Back wall k (null = PLA). What-if: PC 0.2, aluminium 138
+      // electronics hot spots on the board: [{ name, x, y, w (W), s (side, mm) }]. Their power is part of elecW; the rest
+      // (minus camW) is spread evenly. Empty = all spread evenly (positions unknown).
+      elecSpots: [],
       mapRes: 2.5,
       cadV: 2,              // geometry version: 1 = measured from the Head STEP; 2 = + datasheet package size/height (audit)
       targetLm: 300, targetUniformPct: 65, maxBoard: 40, powerBudget: 4,
@@ -596,14 +601,28 @@ function HeadLEDEngine() {
     let Qled = 0; leds.forEach((p, i) => { const w = cfg.kh * Pd * wts[i]; q[ledCell[i]] += w; Qled += w; });
     const K = cfg.keep, camW = K.on ? Math.min(cfg.camW || 0, cfg.elecW || 0) : 0, rest = (cfg.elecW || 0) - camW;
     const camCells = []; if (camW > 0) for (let k = 0; k < N; k++) if (K.mod && modDist(K, cx[k], cy[k]) <= 0) camCells.push(k);
-    for (let k = 0; k < N; k++) q[k] += rest / N;
+    // named hot spots (e.g. SoC, DC/DC) on a square of side s; the remainder spread evenly
+    let spotW = 0;
+    for (const sp of (cfg.elecSpots || [])) {
+      const half = Math.max(res / 2, (sp.s || 10) / 2), cells = [];
+      for (let k = 0; k < N; k++) if (Math.abs(cx[k] - sp.x) <= half && Math.abs(cy[k] - sp.y) <= half) cells.push(k);
+      if (!cells.length) cells.push(nearest(sp.x, sp.y));
+      const w = Math.max(0, +sp.w || 0); cells.forEach(k => { q[k] += w / cells.length; }); spotW += w;
+    }
+    const evenW = Math.max(0, rest - spotW);
+    for (let k = 0; k < N; k++) q[k] += evenW / N;
     if (camW > 0) { if (camCells.length) camCells.forEach(k => { q[k] += camW / camCells.length; }); else for (let k = 0; k < N; k++) q[k] += camW / N; }
-    const Qtot = Qled + (cfg.elecW || 0);
+    const Qtot = Qled + camW + spotW + evenW;   // = LEDs + elecW (unless the spots exceed it)
     // back cavity depth per cell (m), boss contacts
     const Lb = new Float64Array(N); for (let k = 0; k < N; k++) Lb[k] = Math.max(5, backGapAt(cx[k], cy[k])) * 1e-3;
-    const gBoss = new Float64Array(N); if (!opt.noBack) for (const b of CAD.bosses) gBoss[nearest(b.x, b.y)] += cfg.kPla * b.a * 1e-6 / (b.L * 1e-3);
+    const gBoss = new Float64Array(N); if (!opt.noBack) for (const b of CAD.bosses) {
+      // boss column L/(kA) in series with radial spreading into the 3 mm shell wall, ln(Reff/rb)/(2 pi k t) [Textbook],
+      // rb = 4.3 mm (boss radius, STEP), Reff = radius of an equal share of the shell's inner area (ASSUMED share)
+      const Reff = Math.sqrt(CAD.backIn / (Math.PI * CAD.bosses.length)), Rsp = Math.log(Reff / 4.3) / (2 * Math.PI * (cfg.shellK || cfg.kPla) * 3e-3);
+      gBoss[nearest(b.x, b.y)] += 1 / ((b.L * 1e-3) / ((cfg.bossK || cfg.kPla) * b.a * 1e-6) + Rsp);
+    }
     // shell: inner node -> wall -> outside
-    const Aout = CAD.backOut * 1e-6, Ain = CAD.backIn * 1e-6, Rwall = 3e-3 / (cfg.kPla * Ain);
+    const Aout = CAD.backOut * 1e-6, Ain = CAD.backIn * 1e-6, Rwall = 3e-3 / ((cfg.shellK || cfg.kPla) * Ain);
     const T = new Float64Array(N + 1).fill(Ta + 30); // last entry = Head Back inner surface
     const gF = new Float64Array(N), gB = new Float64Array(N);
     let th = null, Qf = Qtot * 0.8, GBA = 0, iters = 0, hOutLast = 0;
@@ -692,8 +711,78 @@ function HeadLEDEngine() {
       TshellOut: opt.noBack ? NaN : C(Ta + GBA * (T[N] - Ta) / (hOutLast * Aout)),
       Tmax: C(Tmax), Tmin: C(Tmin), Tavg: C(Tsum / N), hot: { x: cx[kMax], y: cy[kMax] },
       Tj: Tj.map(C), TjMax: Tj.length ? C(Math.max(...Tj)) : NaN, TshellIn: C(T[N]), TdOutMax: C(TdMax), Tboss: Tboss > -Infinity ? C(Tboss) : NaN,
-      Q: { total: Qtot, led: Qled, elec: cfg.elecW || 0, front: Qf, back: Qb, mounts: Qm }, case: kase, Rdiel, kt, ben: th, iters, Tk: Float64Array.from(T),
+      Q: { total: Qtot, led: Qled, elec: camW + spotW + evenW, front: Qf, back: Qb, mounts: Qm },
+      // lumped conductances (W/K) for the warm-up model: board -> shell (cavity + bosses), shell -> room
+      G: { bs: (Qb + Qm) / Math.max(1e-6, Tsum / N - T[N]), sa: GBA }, case: kase, Rdiel, kt, ben: th, iters, Tk: Float64Array.from(T),
     };
+  }
+
+
+  // ---------------------------------------------------------------- warm-up (transient) - lumped 3-node RC model
+  // Nodes: board (aluminium base), diffuser (PC), shell (Head Back + Head Front, PLA). Conductances: board -> diffuser =
+  // Ben's air-gap resistance, diffuser -> room = Ben's PC + outside resistances (from the steady map's front path);
+  // board -> shell and shell -> room from the steady map. Heat capacities from the STEP volumes and textbook (ASSUMED)
+  // material values: Al 2700 kg/m3 x 900 J/kgK; PC 1200 x 1200; PLA 1240 x 1800. Implicit Euler.
+  // The hottest point is the board average plus the steady (max - average) offset, scaled with the rise.
+  const HEATCAP = { al: 2700 * 900, pc: 1200 * 1200, pla: 1240 * 1800, vDiff: 10708e-9, vShell: (169590 + 27024) * 1e-9 };
+  function warmUp(cfg, map, opt) {
+    opt = opt || {};
+    const Ta = cfg.ambient, ben = map.ben, Ab = polyArea(outline(cfg)) * 1e-6;
+    const Cb = HEATCAP.al * Ab * (cfg.pcb.type === 'fr4' ? 1.6e-3 * 1850 * 1100 / HEATCAP.al : cfg.pcb.tBase * 1e-3);   // FR4: 1850 kg/m3 x 1100 (ASSUMED)
+    const Cd = HEATCAP.pc * HEATCAP.vDiff, Cs = HEATCAP.pla * HEATCAP.vShell;
+    const Gbd = 1 / ben.Rint, Gda = 1 / (ben.Rpc + ben.Rext), Gbs = map.G.bs, Gsa = map.G.sa || 1e-9, Q = map.Q.total;
+    const dt = opt.dt || 5, tEnd = opt.tEnd || 4 * 3600;
+    let Tb = Ta, Td = Ta, Ts = Ta;
+    const out = { t: [], board: [], hot: [], diffuser: [], shell: [] };
+    const off = map.Tmax - map.Tavg, rise = Math.max(1e-6, map.Tavg - Ta);
+    for (let t = 0; t <= tEnd; t += dt) {
+      if (t % 30 === 0) { out.t.push(t); out.board.push(Tb); out.hot.push(Tb + off * (Tb - Ta) / rise); out.diffuser.push(Td); out.shell.push(Ts); }
+      // implicit Euler: solve the 3x3 linear system for the next step (Cramer's rule)
+      const a11 = Cb / dt + Gbd + Gbs, a12 = -Gbd, a13 = -Gbs, b1 = Cb / dt * Tb + Q;
+      const a21 = -Gbd, a22 = Cd / dt + Gbd + Gda, a23 = 0, b2 = Cd / dt * Td + Gda * Ta;
+      const a31 = -Gbs, a32 = 0, a33 = Cs / dt + Gbs + Gsa, b3 = Cs / dt * Ts + Gsa * Ta;
+      const det = a11 * (a22 * a33 - a23 * a32) - a12 * (a21 * a33 - a23 * a31) + a13 * (a21 * a32 - a22 * a31);
+      Tb = (b1 * (a22 * a33 - a23 * a32) - a12 * (b2 * a33 - a23 * b3) + a13 * (b2 * a32 - a22 * b3)) / det;
+      Td = (a11 * (b2 * a33 - a23 * b3) - b1 * (a21 * a33 - a23 * a31) + a13 * (a21 * b3 - b2 * a31)) / det;
+      Ts = (a11 * (a22 * b3 - b2 * a32) - a12 * (a21 * b3 - b2 * a31) + b1 * (a21 * a32 - a22 * a31)) / det;
+    }
+    const fin = out.board[out.board.length - 1], at = f => { for (let i = 0; i < out.t.length; i++) if (out.board[i] - Ta >= f * (fin - Ta)) return out.t[i]; return NaN; };
+    out.t63 = at(0.632); out.t95 = at(0.95); out.C = { board: Cb, diffuser: Cd, shell: Cs };
+    return out;
+  }
+
+  // ---------------------------------------------------------------- passive-cooling what-ifs (same heat map, one change each)
+  // Each changes one input; material values are typical textbook values (ASSUMED), labelled in the UI.
+  const WHATIFS = [
+    { key: 'paint', name: 'Board back painted / anodised black', note: 'emissivity 0.1 → 0.9 (bare vs black-anodised aluminium, typical)', apply: c => { c.pcb.epsBack = 0.9; } },
+    { key: 'standoffs', name: 'Aluminium standoffs instead of PLA bosses', note: 'boss k 0.13 → 138 W/m·K', apply: c => { c.bossK = 138; } },
+    { key: 'pcShell', name: 'Head Back in PC instead of PLA', note: 'wall k 0.13 → 0.2 W/m·K (Ben\'s PC value)', apply: c => { c.shellK = 0.2; } },
+    { key: 'alShell', name: 'Head Back in aluminium', note: 'wall k → 138 W/m·K; outside emissivity 0.85 (anodised, typical)', apply: c => { c.shellK = 138; c.epsShell = 0.85; } },
+    { key: 'typical', name: 'Electronics at typical power', note: 'your table: 2.0 W instead of 4.6 W worst case', apply: c => { c.elecW = 2.0; c.camW = Math.min(c.camW, 0.33); } },
+    { key: 'noElec', name: 'Electronics off this board', note: 'LED heat only (as in Ben\'s calc)', apply: c => { c.elecW = 0; c.camW = 0; c.elecSpots = []; } },
+    { key: 'combo', name: 'Black back + aluminium standoffs + Al Head Back', note: 'the three passive changes together', apply: c => { c.pcb.epsBack = 0.9; c.bossK = 138; c.shellK = 138; c.epsShell = 0.85; } },
+  ];
+  function whatIf(cfg, leds, key, opt) {
+    const w = WHATIFS.find(x => x.key === key), c = clone(cfg); if (w) w.apply(c);
+    return thermalMap(c, leds, opt);
+  }
+
+  // ---------------------------------------------------------------- uncertainty: one assumed input at a time, low / high
+  // Ranges: typical spreads for the values marked ASSUMED, plus Ben's two air-movement bounds and your power range.
+  const UNCERTAIN = [
+    { name: 'Air movement (Ben\'s cases)', src: 'Ben: Nu 1–3, h 2–25', lo: c => { c.thermalCase = 'best'; }, hi: c => { c.thermalCase = 'worst'; } },
+    { name: 'Electronics power', src: 'your table: 2.0 typical – 4.6 W worst', lo: c => { c.elecW = 2.0; c.camW = Math.min(c.camW, 0.33); }, hi: c => { c.elecW = 4.6; } },
+    { name: 'Board back emissivity', src: 'bare 0.05 – painted 0.9 (finish unknown)', lo: c => { c.pcb.epsBack = 0.05; }, hi: c => { c.pcb.epsBack = 0.9; } },
+    { name: 'Aluminium thickness', src: 'MCPCB 1.0–2.0 mm (stack-up unknown)', lo: c => { c.pcb.tBase = 1.0; }, hi: c => { c.pcb.tBase = 2.0; } },
+    { name: 'PLA conductivity', src: '0.10–0.20 W/m·K (filament unknown)', lo: c => { c.kPla = 0.10; }, hi: c => { c.kPla = 0.20; } },
+    { name: 'Shell emissivity', src: '0.80–0.95', lo: c => { c.epsShell = 0.80; }, hi: c => { c.epsShell = 0.95; } },
+    { name: 'LED heat share k_h', src: 'Hui & Qin: 0.85; Qin & Hui: 85–90 %', lo: c => { c.kh = 0.80; }, hi: c => { c.kh = 0.90; } },
+    { name: 'Room temperature', src: '20–30 °C', lo: c => { c.ambient = 20; }, hi: c => { c.ambient = 30; } },
+    { name: 'Dielectric k (chip only)', src: 'MCPCB 1–3 W/m·K', lo: c => { c.pcb.kDiel = 3; }, hi: c => { c.pcb.kDiel = 1; }, chipOnly: true },
+  ];
+  function uncertainRun(cfg, leds, i, side, opt) {
+    const c = clone(cfg); UNCERTAIN[i][side](c);
+    return thermalMap(c, leds, opt);
   }
 
   // ---------------------------------------------------------------- lowest current meeting the light targets
@@ -1063,7 +1152,7 @@ function HeadLEDEngine() {
   }
 
   return {
-    PKG_W, PKG_L, PKG_H, defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
+    PKG_W, PKG_L, PKG_H, defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, warmUp, WHATIFS, whatIf, UNCERTAIN, uncertainRun, HEATCAP, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
     thermal, BEN, objective, rng, poisson, uniformRandom, hex, cvt, fillBestCandidate, optimize, autoDesign,
     assignStrings, balanceStrings, neighbours, taskLight, deskMap, deskModel, deskLux, toDxfDrawn, dxfExport, segHitsCircle, setCam, geoKey, PKG_R, TILT_K, DXF_X0, DXF_Y0,
   };

@@ -263,7 +263,7 @@
     draw(); if (v3on) v3schedule();
     const now = performance.now();
     if (light && now - panelT < 90) return;
-    panelT = now; panels(); dutyPanel();
+    panelT = now; panels(); dutyPanel(); if (step === 4) warmPanel();
   }
   const tip = t => `<span class="q" data-tip="${t}">?</span>`;
   const kv = rows => rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
@@ -386,6 +386,7 @@
     $('curLbl').textContent = `${fmt(cfg.current, 1)} mA`;
     for (const k of ['cv', 'min']) $('w_' + k).value = cfg.w[k];
     $('customCase').style.display = cfg.thermalCase === 'custom' ? '' : 'none';
+    if (document.activeElement !== $('elecSpots')) $('elecSpots').value = (cfg.elecSpots || []).map(s => `${s.name}, ${s.x}, ${s.y}, ${s.w}, ${s.s}`).join('\n');
     syncCam();
   }
   function syncCam() {
@@ -670,6 +671,95 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
 
   // ------------------------------------------------------------ file I/O
   $('saveJson').onclick = () => download('head-led-design.json', JSON.stringify({ app: 'head-led-placement-studio', version: 1, saved: new Date().toISOString(), cfg, leds, strings, snapshots }, null, 2), 'application/json');
+
+  // ------------------------------------------------------------ one-click report (printable; Save as PDF from the print dialog)
+  // Everything in it is computed by the model at the moment of export; each section names its source / method.
+  function canvasShot(ov) {
+    const prev = $('overlay').value; setOverlay(ov); const url = cv.toDataURL('image/png'); setOverlay(prev); return url;
+  }
+  function designRow(name, c, ls, map, st) {
+    const B = E.lightBudget(c, st.geo, ls, st.duty), m = E.metrics(st.geo, st.E, ls.length), desk = E.taskLight(st.geo, st.E, st.flux, c);
+    return { name, gap: c.gap, current: c.current, cct: E.CCT[c.cct] ? c.cct + ' K' : 'custom', n: ls.length, even: m.minAvg, cv: m.cv, lm: ls.length * st.flux * m.util * c.tau,
+      deskMin: desk.min, deskAvg: desk.avg, Tmax: map.Tmax, Tj: map.TjMax, Tboss: map.Tboss, TdOut: map.TdOutMax, P: st.duty.reduce((a, b) => a + b, 0) * E.led(c, map.TjMax).Pel, out: B.out, walls: B.walls, ring: B.annulus };
+  }
+  function buildReport() {
+    if (!leds.length) return toast('Nothing to report: the design has no LEDs.');
+    status('Building report…');
+    const o = { weights: wts() }, M = therm.map, r = res, B = r.budget, now = new Date();
+    // designs: this one + every snapshot, recomputed with the current model
+    const cur = { geo, E: field.E, duty: wts(), flux: r.L.flux };
+    const rows = [designRow('This design', cfg, leds, M, cur)];
+    for (const sn of snapshots) { const c = merge(E.defaults(), migrate(E.clone(sn.cfg), true)), ls = copyLeds(sn.leds), st = v3state(c, ls, sn.name); rows.push(designRow(sn.name, c, ls, st.map, st)); }
+    const wi = lastWhatifs && lastWhatifs.base === M ? lastWhatifs : { base: M, rows: E.WHATIFS.map(w => ({ w, m: E.whatIf(cfg, leds, w.key, o) })) };
+    const warm = lastWarm || E.warmUp(cfg, M);
+    warmPanel();
+    const imgLight = canvasShot('diffuser'), imgHeat = canvasShot('heat'), imgWarm = $('warmChart').toDataURL('image/png');
+    let img3d = null; try { if (v3on && v3) img3d = v3.png(); } catch (e) { /* 3D not open */ }
+    const chk = E.checklist(cfg, { lm: r.outLm, deskMin: r.desk ? r.desk.min : null, evenness: r.m.minAvg, Tboard: M.Tmax, TjMax: M.TjMax, TdOut: M.TdOutMax, Tboss: M.Tboss, TshellIn: M.TshellIn, P: r.P, bad: r.bad.size, drv: r.drv });
+    const fails = chk.filter(c => !c.ok), ev = window.HEAD_EVIDENCE || [], assumed = ev.filter(e => e[2] === 'assumed' || e[2] === 'knowledge');
+    const nb = E.neighbours(leds), xs = geo.poly.map(v => v[0]), ys = geo.poly.map(v => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
+    const best = wi.rows.slice().sort((a, b) => a.m.Tmax - b.m.Tmax)[0];
+    const T = (v, d = 0) => fmt(v, d), pc = v => fmt(v * 100, 0) + '%';
+    const tbl = (head, body) => `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(rw => `<tr>${rw.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    const summary = [
+      `<b>Light:</b> ${T(r.outLm)} lm out (target ${cfg.targetLm}), desk minimum ${T(r.desk.min)} lx at ${cfg.taskZ / 10} cm (target ${cfg.targetLux}), evenness ${pc(r.m.minAvg)} (target ${cfg.targetUniformPct}%). Only ${pc(B.out)} of the LED light leaves through the diffuser; ${pc(B.walls)} is absorbed by the walls, chamfer and lip.`,
+      `<b>Heat (${M.case} case):</b> board ${T(M.Tmax)} °C, LED chips ${T(M.TjMax)} °C (datasheet limit 125), diffuser surface ${T(M.TdOutMax)} °C, PLA bosses ${T(M.Tboss)} °C (PLA softens ≈ ${cfg.plaMax} °C). ${T(M.Q.total, 2)} W in: LEDs ${T(M.Q.led, 2)} W + electronics ${T(M.Q.elec, 2)} W.`,
+      `<b>Biggest passive lever:</b> ${esc(best.w.name)} → board ${T(best.m.Tmax)} °C (${T(best.m.Tmax - M.Tmax)} °C).`,
+      `<b>Warm-up:</b> 95% of the temperature rise after ${T(warm.t95 / 60)} min; bench runs should last at least that long.`,
+      fails.length ? `<b>Fails:</b> ${fails.map(f => esc(f.k)).join(', ')}.` : '<b>All checks pass.</b>',
+    ];
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>LeLamp Head LED report ${now.toISOString().slice(0, 10)}</title><style>
+      body{font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#1c2330;max-width:900px;margin:24px auto;padding:0 18px}
+      h1{font-size:22px;margin:0 0 2px}h2{font-size:16px;margin:22px 0 6px;border-bottom:2px solid #e3e7ee;padding-bottom:3px}h3{font-size:13px;margin:12px 0 4px}
+      .meta{color:#5d6878;font-size:12px}table{border-collapse:collapse;width:100%;margin:6px 0;font-size:12px}th,td{border:1px solid #dde2ea;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f3f5f9}
+      .imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.imgs img{width:100%;border:1px solid #dde2ea;border-radius:4px;background:#10151d}.cap{font-size:11px;color:#5d6878}
+      .bad{color:#c92a2a;font-weight:600}.ok{color:#2b8a3e}.small{font-size:11px;color:#5d6878}ul{margin:4px 0 4px 18px;padding:0}li{margin:2px 0}
+      @media print{body{margin:0}h2{break-after:avoid}table,img{break-inside:avoid}.noprint{display:none}}
+    </style></head><body>
+    <div class="noprint" style="text-align:right"><button onclick="print()">Print / Save as PDF</button></div>
+    <h1>LeLamp Head: LED layout, light and heat</h1>
+    <div class="meta">Generated ${now.toLocaleString()} by Head LED Placement Studio · geometry from the Head STEP (gap ${cfg.gap} mm) · ${cfg.count} LEDs at ${cfg.current} mA, ${E.CCT[cfg.cct] ? cfg.cct + ' K' : 'custom'}, ${cfg.fluxCase === 'tol' ? 'worst-case' : 'typical'} flux · ${cfg.roomLux ? cfg.roomLux + ' lx room light' : 'dark room'}</div>
+    <h2>Summary</h2><ul>${summary.map(s => `<li>${s}</li>`).join('')}</ul>
+    <h2>Designs compared</h2>
+    ${tbl(['Design', 'Gap', 'Current', 'Evenness', 'Variation', 'Light out', 'Desk min / avg', 'Board / LED chip', 'PLA bosses', 'Diffuser surface', 'LED power', 'Light: out / walls / camera ring'],
+      rows.map(d => [esc(d.name), d.gap + ' mm', d.current + ' mA', `<span class="${d.even * 100 >= cfg.targetUniformPct ? 'ok' : 'bad'}">${pc(d.even)}</span>`, fmt(d.cv * 100, 1) + '%', `<span class="${d.lm >= cfg.targetLm ? 'ok' : 'bad'}">${T(d.lm)} lm</span>`, `<span class="${d.deskMin >= cfg.targetLux ? 'ok' : 'bad'}">${T(d.deskMin)}</span> / ${T(d.deskAvg)} lx`, `${T(d.Tmax)} / <span class="${d.Tj > 125 ? 'bad' : ''}">${T(d.Tj)}</span> °C`, `<span class="${d.Tboss > cfg.plaMax ? 'bad' : 'ok'}">${T(d.Tboss)} °C</span>`, T(d.TdOut) + ' °C', fmt(d.P, 2) + ' W', `${pc(d.out)} / ${pc(d.walls)} / ${fmt(d.ring * 100, 2)}%`]))}
+    <p class="small">Every design is recomputed with the current model (heat: ${M.case} case). Targets: brief (300 lm, 65 %, 40 °C, 4 W, provisional); desk 500 lx at 40 cm (Ben's Notion, EN 12464-1); LED chip 125 °C (Cree Pro9 datasheet).</p>
+    <h2>This design</h2>
+    <div class="imgs"><div><img src="${imgLight}" alt="Diffuser brightness map"><div class="cap">Diffuser brightness (yellow bright, purple dark), with the LED layout.</div></div>
+      <div><img src="${imgHeat}" alt="Board temperature map"><div class="cap">Board temperature map (${M.case} case): ${T(M.Tmin, 1)}–${T(M.Tmax, 1)} °C.</div></div>
+      ${img3d ? `<div style="grid-column:1/-1"><img src="${img3d}" alt="3D view"><div class="cap">3D view as last shown.</div></div>` : ''}</div>
+    <h3>Where the light goes</h3>
+    ${tbl(['Destination', 'Share', 'Lumens'], [['Out through the diffuser', pc(B.out), T(B.out * r.n * r.L.flux)], ['Absorbed / scattered in the diffuser', pc(B.diffLoss), T(B.diffLoss * r.n * r.L.flux)], ['Walls, chamfer and lip (dark PLA)', pc(B.walls), T(B.walls * r.n * r.L.flux)], ['Camera barrel', fmt(B.camera * 100, 1) + '%', T(B.camera * r.n * r.L.flux, 1)], ['Escapes undiffused round the camera', fmt(B.annulus * 100, 2) + '%', T(B.annulus * r.n * r.L.flux, 1)]])}
+    <h3>Heat</h3>
+    ${tbl(['Quantity', 'Value'], [['Heat in', `${T(M.Q.total, 2)} W (LEDs ${T(M.Q.led, 2)} + electronics ${T(M.Q.elec, 2)})`], ['Leaves via', `front ${T(M.Q.front, 2)} W · back cavity ${T(M.Q.back, 2)} W · bosses ${T(M.Q.mounts, 2)} W`], ['Board hottest / coolest', `${T(M.Tmax, 1)} / ${T(M.Tmin, 1)} °C`], ['Hottest LED chip', T(M.TjMax, 1) + ' °C (limit 125)'], ['Diffuser outer surface (max)', T(M.TdOutMax, 1) + ' °C'], ['Head Back inside / outside', `${T(M.TshellIn, 1)} / ${T(M.TshellOut, 1)} °C`], ["Ben's network (LEDs only, front only)", T(M.ben.Tboard, 1) + ' °C']])}
+    <h3>Warm-up after switch-on</h3>
+    <div class="imgs"><div><img src="${imgWarm}" alt="Warm-up curves" style="background:#10151d"></div><div class="small">Orange: hottest board point; blue: diffuser; purple: shell. 63 % of the rise after ${T(warm.t63 / 60)} min, 95 % after ${T(warm.t95 / 60)} min. Lumped 3-node model; heat capacities from STEP volumes × typical material values (assumed).</div></div>
+    <h3>Passive cooling what-ifs (one change each)</h3>
+    ${tbl(['Option', 'Board', 'Change', 'LED chip', 'PLA bosses'], wi.rows.map(x => [`${esc(x.w.name)}<br><span class="small">${esc(x.w.note)}</span>`, T(x.m.Tmax) + ' °C', T(x.m.Tmax - M.Tmax) + ' °C', T(x.m.TjMax) + ' °C', `<span class="${x.m.Tboss > cfg.plaMax ? 'bad' : 'ok'}">${T(x.m.Tboss)} °C</span>`]))}
+    ${lastUnc && lastUnc.base === M ? `<h3>Which assumption matters most (one at a time)</h3>${tbl(['Input', 'Range', 'Board low → high'], lastUnc.rows.map(x => [esc(x.u.name), esc(x.u.src), `${T(x.a)} → ${T(x.b)} °C${x.key === 'TjMax' ? ' (chip)' : ''}`]))}` : '<p class="small">Sensitivity not run (step 4 → "Run sensitivity" adds it here).</p>'}
+    <h2>Constraint checklist</h2>
+    ${tbl(['', 'Check', 'Now', 'Limit', 'Limit from'], chk.map(c => [c.ok ? '<span class="ok">✓</span>' : '<span class="bad">✕</span>', esc(c.k), esc(c.val), esc(c.lim), `<span class="small">${esc(c.src)}</span>`]))}
+    <h2>Assumptions and values not in the project files</h2>
+    ${tbl(['Item', 'Value', 'Basis'], assumed.map(e => [esc(e[0]), esc(e[1]), esc(e[3])]))}
+    <p class="small">All other values trace to the Cree Pro9 datasheet, the Head STEP, Head_Board.pdf, the brief, Ben's Notion pages, the cited papers, or your answers. Full list: the app's Evidence panel (step 5) / evidence.js.</p>
+    <h2>Build record: LED positions</h2>
+    <p class="small">mm from the head's left / bottom edges (the dome centre is at x = ${T(-x0, 2)}, y = ${T(-y0, 2)} in these units). Nearest neighbour spacing ${T(Math.min(...nb.pairs.map(q => q.d)), 1)}–${T(Math.max(...nb.pairs.map(q => q.d)), 1)} mm.</p>
+    ${tbl(['LED', 'String', 'Duty', 'x from left', 'y from bottom'], leds.map((p, i) => [i + 1, (p.s || 0) + 1, Math.round((cfg.duty[p.s] ?? 1) * 100) + '%', T(p.x - x0, 2), T(p.y - y0, 2)]))}
+    <h2>Method and sources (short)</h2>
+    <ul class="small">
+      <li>Light: each LED a cos^m (m = 1 from the 120° beam) source onto the diffuser at the optical height (17.9 − 0.62 mm), Moreno 2006 Eq. 1 × incidence cosine = Ben's derivation; walls absorb; diffuser transmission 0.70.</li>
+      <li>Desk: each diffuser patch a Lambertian source onto the desk plane (Ben's method). Evenness = darkest/average (brief); variation = CV (Yang 2009, Su 2012).</li>
+      <li>Heat: 2-D board conduction + Ben's front network + back cavity (STEP depths) + PLA bosses with radial spreading into the shell; LED heat k_h = 0.85 (Hui & Qin 2009); reduces exactly to Ben's network (check 20).</li>
+      <li>Checks: node checks/examples.js (22 checks against the sources) in the project repository.</li>
+    </ul></body></html>`;
+    status('Report ready');
+    const w = window.open('', '_blank');
+    if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+    else download(`head-led-report-${now.toISOString().slice(0, 10)}.html`, html, 'text/html');
+  }
+  $('saveReport').onclick = buildReport;
+  $('saveReportFile').onclick = () => { const w0 = window.open; window.open = () => null; try { buildReport(); } finally { window.open = w0; } };
+
   $('saveCsv').onclick = () => {
     const rows = ['id,string,duty,x_mm,y_mm,x_from_left_edge_mm,y_from_bottom_edge_mm,nearest_led,nearest_mm,x_dxf_drawn,y_dxf_drawn'], w = wts();
     const xs = geo.poly.map(v => v[0]), ys = geo.poly.map(v => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
@@ -715,6 +805,51 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
   // ------------------------------------------------------------ steps, overlay buttons, tooltips
   let step = 1;
   const STEP_HINT = { 1: 'Set the gap, LED count and current on the left', 2: 'Drag LEDs, or use Randomize / Optimize on the left', 3: 'Diffuser brightness: yellow = bright, purple = dark', 4: 'Click 🌡 Heat to see the board temperature map; numbers on the left', 5: 'Save snapshots on the left to compare them' };
+  // ------------------------------------------------------------ heat tools: warm-up, what-ifs, sensitivity, hot spots
+  let lastWarm = null, lastWhatifs = null, lastUnc = null;
+  function warmPanel() {
+    if (!therm || !therm.map) return;
+    const w = lastWarm = E.warmUp(cfg, therm.map), c = $('warmChart'), x = c.getContext('2d'), W = c.width, H = c.height, pad = 26;
+    x.clearRect(0, 0, W, H);
+    const tMax = w.t[w.t.length - 1], Tlo = cfg.ambient, Thi = Math.max(...w.hot) + 2;
+    const X = t => pad + (W - pad - 6) * t / tMax, Y = T => H - 16 - (H - 26) * (T - Tlo) / (Thi - Tlo);
+    x.strokeStyle = 'rgba(160,180,210,.25)'; x.fillStyle = '#8b96a8'; x.font = '10px system-ui'; x.lineWidth = 1;
+    for (let h = 0; h <= tMax / 3600; h++) { x.beginPath(); x.moveTo(X(h * 3600), 4); x.lineTo(X(h * 3600), H - 16); x.stroke(); x.fillText(h + ' h', X(h * 3600) - 6, H - 3); }
+    for (const T of [Tlo, (Tlo + Thi) / 2, Thi]) x.fillText(T.toFixed(0), 2, Y(T) + 3);
+    const line = (arr, col) => { x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); arr.forEach((v, i) => i ? x.lineTo(X(w.t[i]), Y(v)) : x.moveTo(X(w.t[i]), Y(v))); x.stroke(); };
+    line(w.hot, '#ff8a3d'); line(w.diffuser, '#4dabf7'); line(w.shell, '#b197fc');
+    if (cfg.maxBoard < Thi) { x.setLineDash([4, 4]); x.strokeStyle = 'rgba(255,107,107,.7)'; x.beginPath(); x.moveTo(pad, Y(cfg.maxBoard)); x.lineTo(W - 6, Y(cfg.maxBoard)); x.stroke(); x.setLineDash([]); }
+    $('warmInfo').innerHTML = `<span style="color:#ff8a3d">■</span> board (hottest) <span style="color:#4dabf7">■</span> diffuser <span style="color:#b197fc">■</span> shell · 63% of the rise after <b>${fmt(w.t63 / 60, 0)} min</b>, 95% after <b>${fmt(w.t95 / 60, 0)} min</b> (bench runs need at least this long). Heat capacity: board ${fmt(w.C.board, 0)}, diffuser ${fmt(w.C.diffuser, 0)}, shell ${fmt(w.C.shell, 0)} J/K.`;
+  }
+  // run a list of heat maps without freezing the page
+  function runQueue(jobs, onEach, onDone) { let i = 0; const step = () => { if (i >= jobs.length) { onDone(); return; } onEach(i, jobs[i]()); i++; setTimeout(step, 0); }; step(); }
+  $('runWhatifs').onclick = () => {
+    if (!leds.length) return; const o = { weights: wts() }, base = therm.map, rows = [];
+    $('whatifStatus').textContent = 'running…';
+    runQueue(E.WHATIFS.map(w => () => E.whatIf(cfg, leds, w.key, o)), (i, m) => { rows.push({ w: E.WHATIFS[i], m }); $('whatifStatus').textContent = `${i + 1}/${E.WHATIFS.length}`; }, () => {
+      lastWhatifs = { base, rows, case: base.case };
+      $('whatifStatus').textContent = `${base.case} case · board now ${fmt(base.Tmax, 1)} °C`;
+      $('whatifs').innerHTML = `<table><tr><td class="k">Option</td><td class="k">Board</td><td class="k">Change</td><td class="k">LED chip</td><td class="k">PLA bosses</td></tr>${rows.map(r => `<tr><td><b>${esc(r.w.name)}</b><br><span class="hint" style="margin:0">${esc(r.w.note)}</span></td><td>${fmt(r.m.Tmax, 0)} °C</td><td class="${r.m.Tmax < base.Tmax - 1 ? 'good' : ''}">${fmt(r.m.Tmax - base.Tmax, 0)} °C</td><td class="${r.m.TjMax > 125 ? 'bad' : ''}">${fmt(r.m.TjMax, 0)} °C</td><td class="${r.m.Tboss > cfg.plaMax ? 'bad' : 'good'}">${fmt(r.m.Tboss, 0)} °C</td></tr>`).join('')}</table>`;
+    });
+  };
+  $('runUnc').onclick = () => {
+    if (!leds.length) return; const o = { weights: wts() }, base = therm.map, jobs = [];
+    E.UNCERTAIN.forEach((u, i) => { jobs.push(() => E.uncertainRun(cfg, leds, i, 'lo', o)); jobs.push(() => E.uncertainRun(cfg, leds, i, 'hi', o)); });
+    const res2 = []; $('uncStatus').textContent = 'running…';
+    runQueue(jobs, (i, m) => { res2[i] = m; $('uncStatus').textContent = `${i + 1}/${jobs.length}`; }, () => {
+      const rows = E.UNCERTAIN.map((u, i) => { const key = u.chipOnly ? 'TjMax' : 'Tmax', a = res2[2 * i][key], b = res2[2 * i + 1][key]; return { u, a, b, key, swing: Math.abs(b - a) }; }).sort((p, q) => q.swing - p.swing);
+      lastUnc = { base, rows };
+      const lo = Math.min(...rows.filter(r => r.key === 'Tmax').map(r => Math.min(r.a, r.b))), hi = Math.max(...rows.filter(r => r.key === 'Tmax').map(r => Math.max(r.a, r.b)));
+      const span = Math.max(1, hi - lo), pct = v => ((v - lo) / span * 100).toFixed(1);
+      $('uncStatus').textContent = `board ${fmt(base.Tmax, 0)} °C now; one-at-a-time range ${fmt(lo, 0)}–${fmt(hi, 0)} °C`;
+      $('unc').innerHTML = rows.map(r => { const a = Math.min(r.a, r.b), b = Math.max(r.a, r.b); return `<div class="tor"><div class="tl">${esc(r.u.name)}<br><span class="hint" style="margin:0">${esc(r.u.src)}</span></div><div class="tb"><i style="left:${pct(Math.max(lo, a))}%;width:${Math.max(0.8, pct(Math.min(hi, b)) - pct(Math.max(lo, a)))}%"></i><b style="left:${pct(base[r.key])}%"></b></div><div class="tv">${fmt(r.a, 0)} → ${fmt(r.b, 0)} °C${r.key === 'TjMax' ? ' (chip)' : ''}</div></div>`; }).join('');
+    });
+  };
+  function parseSpots(t) {
+    return t.split(/\n/).map(l => l.trim()).filter(Boolean).map(l => l.split(/[,;\t]/).map(s => s.trim())).filter(p => p.length >= 4 && p.slice(1, 4).every(v => Number.isFinite(+v)))
+      .map(p => ({ name: p[0], x: +p[1], y: +p[2], w: +p[3], s: p[4] && Number.isFinite(+p[4]) ? +p[4] : 10 }));
+  }
+  $('elecSpots').addEventListener('change', e => { cfg.elecSpots = parseSpots(e.target.value); computeThermal(true); refresh(); persist(); if (cfg.elecSpots.length) toast(`${cfg.elecSpots.length} hot spot(s): ${cfg.elecSpots.map(s => s.name + ' ' + s.w + ' W').join(', ')}`); });
   $('checkList').addEventListener('click', e => {
     const b = e.target.closest('[data-fix]'); if (!b) return; const f = b.dataset.fix;
     if (f === 'sweep') { setStep(1); $('sweepI').click(); $('sweepI').scrollIntoView({ block: 'center' }); }
@@ -795,9 +930,16 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     v3timer = setTimeout(() => { v3t = performance.now(); v3draw(); }, wait);
   }
   function v3infoText(S, o) {
-    if (o.scene === 'room' && o.roomLook === 'thermal') {
+    if (o.scene === 'cutaway') {
       const M = therm && therm.map;
-      $('v3info').innerHTML = `<b>Thermal camera</b> (${M ? M.case : ''} case): <span class="v3grad seq"></span> ${fmt(cfg.ambient, 0)} → ${fmt(Math.max(S.Thi, cfg.ambient + 1), 0)} °C.` +
+      $('v3info').innerHTML = `<b>Heat cutaway</b> (${M ? M.case : ''} case): <span class="v3grad seq"></span> ${fmt(cfg.ambient, 0)} → ${fmt(Math.max(S.Thi, cfg.ambient + 1), 0)} °C. A section through the head: LED board and diffuser per cell, screw bosses, Head Back (lumped), all from the heat map. Arrows: where the ${M ? fmt(M.Q.total, 2) : ''} W of heat leaves.` +
+        '<br><span style="opacity:.75">Grey = not modelled (Head Front, camera). Air in the cavities is not drawn. Move the cut with the slider.</span>';
+      return;
+    }
+    if (o.scene === 'room' && o.roomLook === 'thermal') {
+      const sc = window.__v3 && window.__v3.irScale;
+      const M = therm && therm.map;
+      $('v3info').innerHTML = `<b>Thermal camera</b> (${M ? M.case : ''} case): <span class="v3grad seq"></span> ${fmt(cfg.ambient, 0)} → ${fmt(sc ? sc.Thi : S.Thi, 0)} °C (scale fitted to what is visible).` +
         ` Coloured only where the heat map computes a temperature: ${o.irInside ? `the <b>LED board</b> (${M ? fmt(M.Tmin, 0) + '–' + fmt(M.Tmax, 0) : '—'} °C)` : `the <b>diffuser outer surface</b> (up to ${M ? fmt(M.TdOutMax, 0) : '—'} °C)`} and the <b>Head Back outer surface</b> (one lumped value, ${M ? fmt(M.TshellOut, 0) : '—'} °C).` +
         '<br><span style="opacity:.75">Grey = not modelled (Head Front, camera, neck, motor, furniture, room): no temperature is invented for them. An IR camera would see the diffuser, not the board; tick "see inside" for the board.</span>';
       return;
@@ -824,9 +966,10 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     }
   }
   $('btn3d').onclick = () => show3d(!v3on);
+  $('v3cutY').addEventListener('input', e => { if (v3) v3.set('cutY', Number(e.target.value)); });
   $('v3scene').addEventListener('change', e => {
-    const room = e.target.value === 'room';
-    $('v3diagOpts').style.display = room ? 'none' : ''; $('v3roomOpts').style.display = room ? '' : 'none';
+    const room = e.target.value === 'room', cut = e.target.value === 'cutaway';
+    $('v3diagOpts').style.display = room || cut ? 'none' : ''; $('v3roomOpts').style.display = room ? '' : 'none'; $('v3cutOpts').style.display = cut ? '' : 'none';
     document.querySelectorAll('.v3bar [data-v3cam="head"], .v3bar [data-v3cam="below"], .v3bar [data-v3cam="scene"], .v3bar [data-v3cam="side"]').forEach(b => { b.style.display = room ? 'none' : ''; });
     if (v3) { v3.opt.ev = room ? Number($('v3roomEv').value) : Number($('v3ev').value); v3.set('scene', e.target.value); }
   });
@@ -854,6 +997,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     document.querySelectorAll('#steps [data-step]').forEach(b => b.classList.toggle('active', Number(b.dataset.step) === n));
     showCompare(n === 5 && snapshots.length > 0);
     setOverlay('diffuser');
+    if (n === 4) setTimeout(warmPanel, 0);
     $('showStrings').checked = n === 3; $('showSpacing').checked = n === 5;
     $('hintbar').textContent = STEP_HINT[n];
     try { localStorage.setItem(STORE + '.step', String(n)); } catch (e) { /* ignore */ }

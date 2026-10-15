@@ -6,7 +6,7 @@
 'use strict';
 function HeadView3D(host, E) {
   const THREE = window.THREE;
-  const opt = { scene: 'diagram', roomLook: 'real', irInside: false, board: 'leds', mode: 'spots', range: 25, relief: 1, ev: 0, expose: 'diffuser', beams: false, walls: 'glass', explode: 0, rho: 0.5, fill: 0.3 };
+  const opt = { scene: 'diagram', cutY: 17, roomLook: 'real', irInside: false, board: 'leds', mode: 'spots', range: 25, relief: 1, ev: 0, expose: 'diffuser', beams: false, walls: 'glass', explode: 0, rho: 0.5, fill: 0.3 };
   const roomOf = d => d.cfg.roomLux || 0; // room light on the desk (model input, step 1)
   let designs = [], panels = [], placed = false, autoCam = null, lastRoomMode = false; // autoCam: preset to re-fit on resize until the user moves the camera
   const orb = { th: 0.75, ph: 2.1, r: 340, tgt: new THREE.Vector3() };
@@ -286,7 +286,8 @@ function HeadView3D(host, E) {
     //   Head Back outer surface: one lumped temperature (thermalMap's shell node -> outside)
     //   Head Front, camera, neck, motor, furniture, room: NOT modelled -> grey (no invented temperatures)
     if (opt.roomLook === 'thermal' && d.map) {
-      const M = d.map, Ta = cfg.ambient, Thi = Math.max(S.Thi, Ta + 1);
+      // scale fitted to what is visible: outside surfaces, or the board when looking inside
+      const M = d.map, Ta = cfg.ambient, Thi = Math.max(Ta + 1, opt.irInside ? S.Thi : Math.max(M.TdOutMax, M.TshellOut));
       const tcol = T => { const c = lut(SEQ, Math.max(0, Math.min(1, (T - Ta) / (Thi - Ta)))); return new THREE.Color(c[0], c[1], c[2]); };
       scene.remove(spot); scene.remove(spot.target); scene.remove(hemi); scene.background = new THREE.Color(0x050608);
       scene.add(new THREE.AmbientLight(0xffffff, 0.55)); const dl = new THREE.DirectionalLight(0xffffff, 0.5); dl.position.set(-800, 1500, 900); scene.add(dl);
@@ -300,7 +301,7 @@ function HeadView3D(host, E) {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
       scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
       if (opt.irInside) { for (const nm of ['Head_Front', 'Camera']) if (cadObjs[nm]) cadObjs[nm].visible = false; }
-      pn.thermal = { Ta, Thi };
+      pn.thermal = { Ta, Thi }; view.irScale = { Ta, Thi };
     } else pn.thermal = null;
     if (cfg.keep.on && !cadReady(cfg)) { const K = cfg.keep, lens = addH(new THREE.Mesh(new THREE.CircleGeometry(K.r, 32), mat(0x050506, 0.15, { metalness: 0.6 }))); lens.rotation.x = Math.PI / 2; lens.position.set(K.x, yDiff - 1.1, K.y); }
 
@@ -308,6 +309,64 @@ function HeadView3D(host, E) {
     const topLum = (p.deskAvg + room) * 0.45 / Math.PI;
     pn.exposure = Math.pow(2, opt.ev) * 0.35 / Math.max(1e-3, topLum);
     pn.room = { yTop, yFloor, cx, cy };
+    pn.scene = scene;
+  }
+
+
+  // ---------------------------------------------------------------- heat cutaway: a section through the head
+  // Coloured only with temperatures the heat map computes (one °C scale, room -> hottest board point):
+  //   LED board per cell, diffuser outer surface per cell, PLA screw bosses (board temperature at the boss),
+  //   Head Back (lumped shell node, mean of inside and outside). Head Front and camera: grey (not modelled).
+  // Arrows: where the heat leaves (front / back cavity / bosses), in W. Section plane at y = cutY (model mm).
+  function textSprite(text, color) {
+    const c = document.createElement('canvas'), x = c.getContext('2d'), fs = 34; x.font = `600 ${fs}px system-ui`;
+    const w = Math.ceil(x.measureText(text).width) + 24; c.width = w; c.height = fs + 22;
+    x.font = `600 ${fs}px system-ui`; x.fillStyle = 'rgba(10,14,20,.82)'; x.fillRect(0, 0, w, c.height); x.fillStyle = color || '#e8edf3'; x.textBaseline = 'middle'; x.fillText(text, 12, c.height / 2);
+    const t = new THREE.CanvasTexture(c), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
+    const k = 0.26; sp.scale.set(w * k, c.height * k, 1); sp.renderOrder = 10; return sp;
+  }
+  function buildCutaway(pn, d, S) {
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0f15);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75)); const dl = new THREE.DirectionalLight(0xffffff, 0.35); dl.position.set(200, 300, 400); scene.add(dl);
+    const { cfg } = d, M = d.map, gap = cfg.gap; if (!M) { pn.scene = scene; return; }
+    const Ta = cfg.ambient, Thi = Math.max(S.Thi, Ta + 1), cutY = opt.cutY;
+    const tcol = T => { const c = lut(SEQ, Math.max(0, Math.min(1, (T - Ta) / (Thi - Ta)))); return new THREE.Color(c[0], c[1], c[2]); };
+    const clip = [new THREE.Plane(new THREE.Vector3(0, 0, -1), cutY)];   // keep model y <= cutY
+    const add = o => { scene.add(o); return o; };
+    const cells = M.cells, n = cells.x.length, r = cells.res, tB = cfg.pcb.type === 'fr4' ? 1.6 : cfg.pcb.tBase;
+    // board and diffuser as coloured cell blocks
+    const slab = (y0, th, vals) => {
+      const g = new THREE.BoxGeometry(r, th, r), m = new THREE.MeshLambertMaterial({ clippingPlanes: clip }), im = new THREE.InstancedMesh(g, m, n), o = new THREE.Object3D();
+      for (let k = 0; k < n; k++) { o.position.set(cells.x[k], y0 + th / 2, cells.y[k]); o.updateMatrix(); im.setMatrixAt(k, o.matrix); im.setColorAt(k, tcol(vals[k])); }
+      im.instanceColor.needsUpdate = true; return add(im);
+    };
+    slab(0, tB, cells.T);                                  // board: front face at y 0, back face up into the back cavity
+    slab(-gap - 1, 1, cells.Tdo);                          // diffuser (outer-surface temperature), 1 mm thick
+    // bosses (PLA unless the what-if changed them): back 5 mm above the board back, front 3 mm below the front
+    const Tb = M.Tboss, bossCol = tcol(Tb);
+    E.CAD.bosses.forEach(b => {
+      const L = b.L, g = new THREE.CylinderGeometry(4.3, 4.3, L, 20), m = add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: bossCol, clippingPlanes: clip })));
+      m.position.set(b.x, L === 5 ? tB + L / 2 : -L / 2, b.y);
+    });
+    // shells
+    const shellT = (M.TshellIn + M.TshellOut) / 2;
+    if (cad.geoms.Head_Back) {
+      const hb = cad.geoms.Head_Back.clone(); hb.translate(0, 0, 0);
+      add(new THREE.Mesh(hb, new THREE.MeshLambertMaterial({ color: tcol(shellT), side: THREE.DoubleSide, clippingPlanes: clip })));
+      add(new THREE.Mesh(cad.geoms.Head_Front, new THREE.MeshLambertMaterial({ color: 0x5a5f68, side: THREE.DoubleSide, clippingPlanes: clip })));
+      if (cad.geoms.Camera) add(new THREE.Mesh(cad.geoms.Camera, new THREE.MeshLambertMaterial({ color: 0x4a4f57, clippingPlanes: clip })));
+    }
+    // labels and heat-flow arrows (in the section plane, just in front of it)
+    const zL = cutY + 2, cx = M.hot.x;
+    const lab = (txt, x, y, col) => { const s = textSprite(txt, col); s.position.set(x, y, zL); add(s); };
+    const arrow = (x, y, dy, len, W, txt) => { const a = new THREE.ArrowHelper(new THREE.Vector3(0, dy, 0), new THREE.Vector3(x, y, zL), len, 0xffc857, 8, 6); add(a); lab(`${txt} ${W.toFixed(2)} W`, x + 34, y + dy * len * 0.6, '#ffc857'); };
+    lab(`Board ${M.Tmax.toFixed(0)} °C (LED chips ${M.TjMax.toFixed(0)}, limit 125)`, cx, -6, '#ffffff');
+    lab(`Diffuser outside ≤ ${M.TdOutMax.toFixed(0)} °C`, cx, -gap - 9, '#ffffff');
+    lab(`Head Back ${shellT.toFixed(0)} °C (lumped)`, 45, 60, '#ffffff');
+    lab(`Bosses ${Tb.toFixed(0)} °C${Tb > cfg.plaMax ? ` > PLA ${cfg.plaMax} ⚠` : ''}`, -75, -10, Tb > cfg.plaMax ? '#ff8787' : '#ffffff');
+    arrow(cx - 30, -gap - 2, -1, 45, M.Q.front, 'out the front');
+    arrow(cx - 30, tB + 2, 1, 45, M.Q.back, 'across the back cavity');
+    arrow(-60, tB + 7, 1, 22, M.Q.mounts, 'through bosses');
     pn.scene = scene;
   }
 
@@ -352,18 +411,19 @@ function HeadView3D(host, E) {
     while (panels.length > designs.length) { const pn = panels.pop(); disposeScene(pn.scene); pn.renderer.dispose(); pn.div.remove(); }
     layout();
     const S = sharedScale();
-    const roomMode = opt.scene === 'room';
+    const roomMode = opt.scene === 'room', cutMode = opt.scene === 'cutaway';
     designs.forEach((d, i) => {
       const pn = panels[i], r = pn.renderer; disposeScene(pn.scene);
       // renderer set-up differs: the diagram computes its own display colours; the room uses physical lights + tone mapping
       const ir = roomMode && opt.roomLook === 'thermal', real = roomMode && !ir;   // thermal look: computed colours, no photometry
-      r.physicallyCorrectLights = real; r.shadowMap.enabled = real; r.shadowMap.type = THREE.VSMShadowMap;
+      r.physicallyCorrectLights = real; r.shadowMap.enabled = real; r.shadowMap.type = THREE.VSMShadowMap; r.localClippingEnabled = cutMode;
       r.toneMapping = real ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping; r.outputEncoding = real ? THREE.sRGBEncoding : THREE.LinearEncoding;
-      if (roomMode) { buildRoom(pn, d, S); r.toneMappingExposure = pn.exposure; } else buildPanel(pn, d, S);
+      if (cutMode) buildCutaway(pn, d, S); else if (roomMode) { buildRoom(pn, d, S); r.toneMappingExposure = pn.exposure; } else buildPanel(pn, d, S);
       pn.lab.innerHTML = d.label || '';
     });
-    if (roomMode !== lastRoomMode) { lastRoomMode = roomMode; placed = false; autoCam = null; }
-    if (!placed || autoCam) { const w = autoCam || (roomMode ? 'room' : 'head'); home(w); placed = true; autoCam = w; }
+    const sceneKey = opt.scene + (roomMode && opt.roomLook === 'thermal' ? '-ir' : '');
+    if (sceneKey !== lastRoomMode) { lastRoomMode = sceneKey; placed = false; autoCam = null; }
+    if (!placed || autoCam) { const w = autoCam || (cutMode ? 'cut' : roomMode ? (opt.roomLook === 'thermal' ? 'roomLamp' : 'room') : 'head'); home(w); placed = true; autoCam = w; }
     renderAll();
     if (view.onInfo) view.onInfo(S, opt, designs.map(prep));
   }
@@ -373,7 +433,8 @@ function HeadView3D(host, E) {
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const [x, y] of d.geo.poly) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, Rh = Math.hypot(x1 - x0, y1 - y0) / 2, asp = panels[0] ? panels[0].cam.aspect : 1.5;
     const vf = 40 * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp), fit = Rh * 1.08 / Math.sin(Math.min(vf, hf) / 2);
-    if (which === 'room') { orb.tgt.set(cx + 60, -g - z - 40, cy - 40); orb.r = 1500; orb.th = Math.PI - 0.55; orb.ph = 1.2; }
+    if (which === 'cut') { orb.tgt.set(0, 5, opt.cutY); orb.r = 240; orb.th = 0.22; orb.ph = 1.45; }
+    else if (which === 'room') { orb.tgt.set(cx + 60, -g - z - 40, cy - 40); orb.r = 1500; orb.th = Math.PI - 0.55; orb.ph = 1.2; }
     else if (which === 'roomLamp') { orb.tgt.set(cx, -g - 20, cy); orb.r = 520; orb.th = Math.PI - 0.6; orb.ph = 1.95; }
     else if (which === 'roomLow') { orb.tgt.set(cx, -g - z + 120, cy); orb.r = 800; orb.th = Math.PI - 0.35; orb.ph = 1.45; }
     else if (which === 'head') { orb.tgt.set(cx, -g, cy); orb.r = fit; orb.th = 0.6; orb.ph = 2.2; }
@@ -386,7 +447,7 @@ function HeadView3D(host, E) {
     // list: [{ label, cfg, geo, E, leds, duty, flux }], first = reference for the Real-look exposure
     update(list) { designs = list; loadCad(); build(); },
     debug() { const out = []; if (panels[0] && panels[0].scene) panels[0].scene.traverse(o => { if (o.isMesh) out.push([o.material.type, o.material.color ? o.material.color.getHexString() : '', o.material.vertexColors ? 'vc' : '', o.geometry.type, o.visible]); }); return out; },
-    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow', 'roomLamp'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
+    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow', 'roomLamp', 'cut'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
     set(k, v) { opt[k] = v; build(); },
     png() { // all panels side by side in one image
       renderAll(); const cs = panels.map(p => p.renderer.domElement), cols = cs.length <= 1 ? 1 : 2, rows = Math.ceil(cs.length / cols), w = cs[0].width, h = cs[0].height;

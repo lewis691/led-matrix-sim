@@ -538,7 +538,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Once met, any move that would break it is rejected.
   - You get a warning if 500 lx can't be reached at the current setting.
 - **Source:** target [Ben-Light]; method [Mine]. Check 15 confirms it holds.
-- **Finding (CAD geometry, default keepout, `checks/desk-limit.js`):** at 25 mA the limit is met (500 lx) by pulling LEDs inward: evenness 46% vs 93% with the limit off. At 20 mA it can't be met: the LEDs bunch up (CV 103%) and still only reach 473 lx.
+- **Finding (CAD geometry, default keepout and whole-face scoring, `checks/desk-limit.js`):** at 25 mA the limit is met (500 lx) by pulling LEDs inward (CV 34% vs 24% with the limit off; outside-corner evenness 86% with the limit off). At 20 mA it can't be met and the LEDs bunch up.
 
 **Optimize string dimming at the same time (option)**
 - **How:**
@@ -546,7 +546,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Strings are regrouped (zones) every 500 iterations as LEDs move, each new string taking its LEDs' average duty.
   - Auto-balance runs at the end.
 - **Source:** solving spacing and centre-LED flux together [Moreno06] §3C; method [Mine].
-- **Test (CAD geometry, default keepout, regenerated 15 Oct):** about the same as placing first and then pressing Auto-balance (better in 3 of 6 runs; evenness 93.5% vs 93.2%), and it keeps less light (82% vs 99%). See `checks/dimming-compare.js`.
+- **Test (CAD geometry, default keepout, whole-face scoring, regenerated 15 Oct):** a slightly better score than placing first and then pressing Auto-balance (better in 5 of 6 runs; CV 24.1% vs 24.3%), but it keeps less light (69% vs 79%). See `checks/dimming-compare.js`.
 
 **Find best from scratch (multi-start)**
 - **How:** K fresh starts (default 3): Poisson → CVT (25 iterations) → optimize. Keeps the best.
@@ -728,7 +728,7 @@ All from `code/`:
   - evenness scored over the whole face by default, outside the corner as an option, both reported
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
-- `node checks/gap21-why.js`: why evenness (outside the keepout corner) stays below 65%. The 500 lx desk limit at 25 mA pulls LEDs inward: 80% at 10 mm, 48% at 17.9 mm, 38% at 21 mm; 94% at 21 mm with the limit off. With the limit on at 21 mm it reaches 69% at 29 mA and 91% at 33 mA, with the board at 129–134 °C worst case.
+- `node checks/gap21-why.js`: why evenness stays below 65%. With whole-face scoring the darkest point is always next to the lens inside the keepout corner, so min/avg is 0–5% at every gap, current and LED count (42% at 21 mm with no camera). Scoring only outside the corner (option), the desk limit is what holds it down (see § camera keepout).
 - `node checks/thermal-40c.js`: with the full heat map the electronics alone (LEDs off) put the board at 62–90 °C, so 40 °C is impossible at any LED current. Even with the electronics off the board, 40 °C allows only 6.6 mA (1.08 W, 110 lm, 134 lx) in the worst case.
 - `node checks/example-variations.js`: reference numbers for the Baseline / A / B walkthrough.
 - `node checks/dimming-compare.js`: joint vs two-pass dimming.

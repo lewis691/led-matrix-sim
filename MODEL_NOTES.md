@@ -56,19 +56,20 @@ Values are the program defaults (`engine.js → defaults()`), checked against th
 |---|---|---|---|
 | Board → diffuser gap | 10 mm | **17.9 mm**, uniform; light starts 0.62 mm up (LED height, Pro9 p.23), so the optical height is 17.28 mm | [STEP] |
 | Where light reaches the diffuser | whole outline, 2 mm rim excluded from scoring | only the Head Front **lip opening**, 3.6 mm inside the board edge (10,530 mm²); anything outside hits the walls, 43° chamfer or lip | [STEP] |
-| Camera | Ø 8 mm lens (assumed) | **Ø 14 barrel** flush with the diffuser in a **Ø 16 hole**: 1 mm open ring to the room. The **25 × 24 camera board** sits on the LED board, so it's an LED keepout (default) | [STEP] |
+| Camera | Ø 8 mm lens (assumed) | **Ø 14 barrel** flush with the diffuser in a **Ø 16 hole**: 1 mm open ring to the room. The **25 × 24 camera board** sits on the LED board; LED keepout = the original DXF corner zone, which contains it (default) | [STEP] |
 | Screw holes | DXF positions, 3.5 mm clearance | STEP positions; TL/TR carry Ø 8.6 Head Front bosses (clearance 4.3) | [STEP] |
 | Heat | Ben's 1-D front path, LEDs only, one temperature | **2-D map**: metal-core board conduction + Ben's front path + the 727 cm³ back cavity + PLA bosses, LEDs **and 4.6 W of electronics** | [Ben-Heat] + [STEP] + [User] |
 | Light accounting | "light reaching diffuser" only | **every lumen**: out through the diffuser, diffuser loss, walls/chamfer/lip, camera barrel, the open camera ring, other openings (0) | [STEP] + [User] |
 | 3D | extruded outline, mirror-image world | real Head Front/Back, camera, neck and motor meshes; board coloured by the heat map; correct handedness | [STEP] |
 
-**What it means (Variation A layout re-optimized at the CAD geometry, 25 mA, `checks/example-variations-output.txt`):**
-- **About 25–27% of the LED light hits the walls, chamfer and lip** (23% even at a 10 mm gap, because the lip opening sits 3.6 mm inside the board edge) and is lost into dark PLA. Only about 50% leaves through the diffuser.
-- **At 25 mA the 500 lx desk minimum is no longer met:** hex 467 lx, optimized 481 lx. The optimizer's desk limit then pulls LEDs inward, so evenness only reaches about 52% (hex 15%). Use "Find lowest current that meets the targets" (about 26–27 mA), or allow room light.
-- Reference numbers: Baseline hex 15% evenness, 373 lm, desk 467 lx; Variation A 52%, 381 lm, 481 lx; board 83–121 °C for both.
-- **The board runs about 120 °C (Ben's worst case) or 83 °C (best case)**, because the 4.6 W of electronics roughly doubles the heat. LED chips sit about 0.5 °C above the board, close to the 125 °C datasheet limit in the worst case.
+**What it means (Variation A re-optimized at the CAD geometry with the original DXF keepout, 25 mA; `checks/example-variations-output.txt`, regenerated 15 Oct):**
+- **About 22–28% of the LED light hits the walls, chamfer and lip** (22% even at a 10 mm gap, because the lip opening sits 3.6 mm inside the board edge) and is lost into dark PLA. Only 50–54% leaves through the diffuser.
+- **At 25 mA the hex start misses the 500 lx desk minimum** (455 lx); the optimizer's desk limit pulls LEDs inward to reach exactly 500 lx.
+- **Evenness (min/avg) is 1–2%** for every layout, because the diffuser over the keepout corner is scored and its far end is about 42 mm from any legal LED (§ camera keepout). CV (33% optimized vs 41% hex) is the more useful comparison with this keepout.
+- Reference numbers: Baseline hex 1% evenness, CV 40.7%, 373 lm, desk 455 lx; Variation A 2%, CV 33.1%, 400 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases).
+- **The board runs about 124 °C (worst case) or 85 °C (best case)**, because the 4.6 W of electronics roughly doubles the heat. LED chips sit about 0.5 °C above the board, right at the 125 °C datasheet limit in the worst case.
 - **The PLA screw bosses touch the board.** At these temperatures they would soften (PLA glass transition about 55–60 °C). This is the biggest physical risk the model now shows.
-- **The camera ring leaks about 0.1–0.2% of the light (about 0.5–1.5 lm) directly**, undiffused: a thin bright ring around the lens.
+- **The camera ring leaks about 0.03–0.1% of the light (about 0.2–0.6 lm) directly**, undiffused: a thin bright ring around the lens. With the corner keepout no LED is near the lens, so the leak is smaller than with the board-footprint keepout.
 - **A metal-core board is nearly one temperature** (within about 2–3 °C); FR4 would spread 105–127 °C. So where the LEDs sit hardly changes the heat; total power does.
 
 **Rebuilt for the Head:**
@@ -140,16 +141,18 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 - **How (STEP values):**
   - Centre (42.4, −13.3): the centre of the IMX219 board's 4 M2 holes (STEP 42.400, −13.295).
   - **Barrel Ø 14** at the top, flush with the diffuser's outer face (2° taper to Ø 13.1 at its base). **Diffuser hole Ø 16**: the 1 mm ring between them (47 mm²) is open to the room, so light landing there leaves directly (§2, light budget).
-  - **Camera board footprint** 25 × 24 mm (x 30–55, y −21.9 to 2.1) on the LED board front: the default LED keepout (`zone: 'module'`), with a 1 mm body clearance. "Barrel circle only" is kept as a what-if.
+  - **Camera board footprint** 25 × 24 mm (x 30–55, y −21.9 to 2.1) on the LED board front, with a 1 mm body clearance: an option (`zone: 'module'`). "Barrel circle only" is kept as a what-if.
   - Cells inside the Ø 16 hole are excluded from the diffuser. Shading: a ray from an LED to a diffuser cell is blocked if its 2-D path crosses the barrel circle (r 7), treated as full height.
 - **Movable:** drag on the canvas, or type the centre and diameter (step 1). "Reset to DXF" puts it back. Moving it doesn't rebuild the grid, only the lens mask.
 - **Source:** geometry [STEP]; shadow concept [Notion-Cam] / [Notion-Head] (camera flush with diffuser); ray test [Textbook].
 - **Changed:** was an assumed Ø 8 lens circle; now the measured barrel, hole and board footprint. Designs saved earlier are migrated automatically on load (a notice says so; snapshots keep their gap).
-- **Original DXF keepout (restored as an option):** step 1 → "Keep LEDs out of" → *Original DXF keepout zone (corner)*.
+- **Original DXF keepout (the default since 15 Oct; the new prototype uses it, per the user):** step 1 → "Keep LEDs out of" → *Original DXF keepout zone (corner)*. Saved designs are moved to it on load (geometry version 3, with a notice).
   - **Zone:** the corner region drawn in `WT - Lewis.dxf`, x ≥ 19.0 and y ≤ 19.22 mm (de-tilted), clipped to the outline (about 2,200 mm² inside the head). It is stored relative to the lens (dx −23.4, dy +32.52 mm), so it moves with the camera.
   - **Clearance:** the original 2.3 mm from LED centre, i.e. 0.06 mm from the LED body.
   - **Drawn as:** a hatched block with a dashed clearance line on the canvas, a dark patch on the board in 3D, and layer `CAMERA_KEEPOUT` in the DXF export.
-  - **Effect** (10 mm gap, 25 mA, desk limit on): placeable area 10,176 → 8,007 mm². The diffuser above the corner has no LEDs under it, so it goes dark: evenness after optimizing about 2% (CV 34.5%), vs about 77–81% lens-only.
+  - **Contains** the whole 25 × 24 mm camera board, so the board-footprint rule is implied.
+  - **Scoring:** the diffuser over the corner is still scored for evenness, because the whole face should glow evenly (user, 15 Oct).
+  - **Effect** (CAD geometry, 25 mA, desk limit on, 6,000 iterations): placeable area 7,948 mm² (9,350 with the board footprint only, 9,970 with the barrel only). The far corner of the face (58.7, −19.7) is 41.7 mm from the nearest legal LED position, where one LED gives only 2% of what it gives straight above it (h⁴/(h² + r²)² at h = 17.28 mm). So the darkest point stays near 1% of the average whatever the placement: optimized evenness (min/avg) 1%, 5th percentile/avg 24%, CV 31%, vs 46%, 57% and 20% with the board footprint. 7.6% of the lit face is more than one optical height from any legal LED spot. Min/avg can't reach the 65% target with this keepout; the fixes are physical (a lighter-coloured or reflective camera cover in the corner, a bigger gap, or LEDs allowed closer to the camera).
   - **Why it isn't the default:** that corner is mostly LED board, not camera. The lens only needs its circle. Confirm with Zoheb/Rizwan which applies.
   - **Source:** [DXF]; clearance [Old]/[Mine].
 
@@ -204,7 +207,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **open camera ring**: Ø 14 to Ø 16, polar integration, leaves undiffused
   - **walls / chamfer / lip**: everything else
 - **Zero by geometry:** board windows, edge gap and screw holes have no line of sight from any LED [STEP]. Seams are sealed and the shell is opaque [User].
-- **Typical (hex, 25 mA):** out 50%, diffuser loss 22%, walls 27%, barrel 0.7%, ring 0.10%. Check 22: the shares sum to 100% and the diffuser share equals the field model's.
+- **Typical (hex, 25 mA):** out 50%, diffuser loss 22%, walls 28%, barrel 0.24%, ring 0.03% (default corner keepout). Check 22: the shares sum to 100% and the diffuser share equals the field model's.
 - **Not modelled:** light piped inside the diffuser to its 1 mm edge (seen through the groove), and light scattered back from the diffuser and reflected (treated as absorbed).
 - **Source:** the same kernel as above; geometry [STEP]; materials [User]. **Changed:** new.
 
@@ -300,18 +303,21 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - "Flux ∝ current" [Old]. Cross-check: the datasheet's relative-flux-vs-current graph (p.6) reads about 40% at 25 mA (by eye) vs the linear model's 38.5%, so the model is about 4% conservative at 25 mA.
 - **Changed:** CCT select restored and extended (old: 2700 / 3000 K for Cree only); ±7% restored as an option instead of always on. Removed estimated-V_f mode, droop and maintenance (see §0).
 - **Cross-check:** Ben's 13.69 lm/LED target [Ben-Heat] vs our 13.9 lm at 25 mA, 3000 K.
-- **Effect on Variation A** (10 mm, 25 mA, worst-case heat; `checks/cct-output.txt`):
+- **Effect on Variation A** (re-optimized at the CAD geometry with the default keepout, 25 mA, worst-case heat map; `checks/cct-output.txt`):
 
-  | CCT | Flux | Light out | Desk min | Lowest current meeting 300 lm + 500 lx |
+  | CCT | Flux | Light out | Desk min | Lowest current meeting 300 lm + 500 lx (chip temperature) |
   |---|---|---|---|---|
-  | 3000 K typical | 12.9 lm | 432 lm | 544 lx | 23.0 mA (3.73 W) |
-  | 3000 K −7% | 12.0 lm | 402 lm | 506 lx | 25.0 mA (4.05 W) |
-  | 4000 / 5000 K typical | 13.6 lm | 454 lm | 571 lx | 22.0 mA (3.56 W) |
-  | 4000 / 5000 K −7% | 12.6 lm | 422 lm | 531 lx | 23.5 mA (3.81 W) |
+  | 3000 K typical | 12.3 lm | 400 lm | 500 lx | 25.0 mA, 4.05 W (chip 124.5 °C) |
+  | 3000 K −7% | 11.5 lm | 372 lm | 465 lx | 27.0 mA, 4.37 W (chip 127.1 °C, over 125) |
+  | 4000 / 5000 K typical | 13.0 lm | 420 lm | 526 lx | 24.0 mA, 3.89 W (chip 123.2 °C) |
+  | 4000 / 5000 K −7% | 12.1 lm | 391 lm | 489 lx | 26.0 mA, 4.21 W (chip 125.8 °C, over 125) |
+
+  With worst-case flux and worst-case heat, no current meets the desk target within the chip limit.
 
 **Lowest-current search** (restored from the old program)
-- **What:** tries every current from 1 mA to the 60.5 mA driver limit in 0.5 mA steps and returns the lowest that meets the light-out and desk-minimum targets with the current layout. One click applies it.
-- **How:** light out and desk lux are linear in per-LED flux, so they are scaled from the current result. Each step recomputes the board and junction temperature (Ben + Hui) and the flux derating.
+- **What:** finds the lowest current on a 0.5 mA grid (1 mA to the 60.5 mA driver limit) that meets the light-out and desk-minimum targets with the current layout. One click applies it. If the hottest LED chip is then over 125 °C it says so: no current meets both the light targets and the chip limit.
+- **How:** light out and desk lux are linear in per-LED flux, so they are scaled from the current result. Each step solves the full heat map (as the app shows it) and derates the flux at the hottest chip. Light rises with current, so the grid is bisected (about 8 map solves); check 25 confirms it matches a full scan.
+- **Fixed in the 15 Oct review:** the search (and the optimizer's desk-limit flux) used Ben's LED-only network, which ignores the 4.6 W of electronics. It offered 26 mA, which then showed 482 lx in the app; the map-based answer is 28 mA, with the chip at about 129 °C (hex, worst case).
 - **Source:** [Old] `optimizeCurrent`; targets [Brief] / [Ben-Res].
 - **Changed:** the old version minimised input power including the driver and fan. Neither is modelled now, so the lowest power is the lowest current.
 
@@ -368,9 +374,9 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **Check 20:** with the back path off, no electronics and a near-perfect board, the map gives **exactly Ben's board temperature** (90.69 °C).
   - **Check 21:** heat out = heat in (8.04 W), and the 2.5 mm and 1.5 mm grids agree to 0.05 °C.
 - **Results (hex layout, 25 mA, 3000 K):**
-  - Board 120 °C worst case / 83 °C best case, flat to about 2.5 °C.
-  - LED chips about 121 °C worst case (limit 125).
-  - Heat out: front 5.6 W, back 1.75 W, bosses 0.74 W.
+  - Board 124 °C worst case / 85 °C best case, flat to about 2.5 °C.
+  - LED chips about 124.5 °C worst case (limit 125).
+  - Heat out (8.04 W): front 5.84 W, back 1.86 W, bosses 0.34 W (check 21).
   - Diffuser surface up to 77 °C; Head Back inside 35 °C.
   - **PLA bosses at board temperature**, far above PLA's 55–60 °C softening.
 - **Not modelled:** the Head Front walls as a separate path; air movement between the two cavities through the board windows and edge gap; heat from light absorbed on the walls; contact resistances at the bosses; where on the board the electronics actually sit.
@@ -522,7 +528,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Once met, any move that would break it is rejected.
   - You get a warning if 500 lx can't be reached at the current setting.
 - **Source:** target [Ben-Light]; method [Mine]. Check 15 confirms it holds.
-- **Finding:** below ~23 mA, meeting 500 lx forces LEDs to bunch up (evenness drops to ~30% at 20 mA).
+- **Finding (CAD geometry, default keepout, `checks/desk-limit.js`):** at 25 mA the limit is met (500 lx) by pulling LEDs inward (CV 34% vs 24% with the limit off). At 20 mA it can't be met: the LEDs bunch up (CV 108%) and still only reach 473 lx.
 
 **Optimize string dimming at the same time (option)**
 - **How:**
@@ -530,7 +536,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Strings are regrouped (zones) every 500 iterations as LEDs move, each new string taking its LEDs' average duty.
   - Auto-balance runs at the end.
 - **Source:** solving spacing and centre-LED flux together [Moreno06] §3C; method [Mine].
-- **Test:** 80.5% vs 79.3% evenness compared with placing first and then pressing Auto-balance (better in 4 of 6 runs), but it keeps less light (85% vs 99%). See `checks/dimming-compare.js`.
+- **Test (CAD geometry, default keepout, regenerated 15 Oct):** a slightly better score than placing first and then pressing Auto-balance (better in 5 of 6 runs; CV 24.1% vs 24.3%, min/avg 4.4% vs 4.1%), but it keeps less light (69% vs 79%). See `checks/dimming-compare.js`.
 
 **Find best from scratch (multi-start)**
 - **How:** K fresh starts (default 3): Poisson → CVT (25 iterations) → optimize. Keeps the best.
@@ -691,7 +697,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - the 3D view
 
   It is not added to the diffuser (under 1% there).
-  - Example: with 300 lx room light, the hex desk minimum goes from 461 to 761 lx at the reference current. The lowest current meeting 300 lm and 500 lx drops from 21 to 15.5 mA, where light out becomes the limit (check 19).
+  - Example (check 19, regenerated 15 Oct): with 300 lx room light, the desk minimum goes from 369 to 669 lx at the reference current. The lowest current meeting 300 lm and 500 lx drops from 28 to 20 mA, where light out becomes the limit.
   - Keep 0 for design sign-off (worst case). Use a measured value, from a lux meter on the desk with the lamp off, to see how much the firmware could dim in a lit room.
 - **Source:** superposition of illuminance [Textbook]; 500 lx as total task illuminance [Ben-Light] (EN 12464-1); room value [user input]. **Changed:** new.
 
@@ -700,22 +706,24 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 ## 9. Checks you can run
 
 All from `code/`:
-- `node checks/examples.js`: 24 checks with source, expected and actual values:
+- `node checks/examples.js`: 25 checks with source, expected and actual values:
   - light formula, energy conservation, Moreno spacing, Yang ripple
   - Ben's heat calc, Hui's equations, driver limits
   - Randomize, Even out, Optimize, dimming
-  - lens clearance, spacing table, desk light, desk limit
+  - camera keepout clearance, spacing table, desk light, desk limit
   - colour-temperature flux vs datasheet, lowest-current search, constraint checklist, room light
   - heat map vs Ben's network, heat-map energy balance and grid convergence, light budget accounts for every lumen
   - warm-up settles on the steady map, passive-cooling what-ifs behave physically
+  - current-sweep bisection matches a full scan with heat-map derating
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
-- `node checks/gap21-why.js`: why 21 mm stays below 65% evenness. The 500 lx desk limit at 25 mA forces LEDs inward, because walls absorb 39% of the light at 21 mm. With the limit off: 94%. With the limit on, it reaches 72% at 27 mA and 94% at 31 mA.
-- `node checks/thermal-40c.js`: highest LED power that keeps the board ≤ 40 °C under Ben's network (0.75–1.9 W depending on gap and case), and the light that gives (77–232 lm), so 40 °C and 300 lm / 500 lx can't both be met with front-only cooling.
+- `node checks/gap21-why.js`: why evenness stays below 65% (10, 17.9 and 21 mm). With the original DXF keepout the darkest point is always next to the lens inside the keepout corner, so min/avg is 0–5% at every gap, current and LED count; with no camera at 21 mm it is 42%. The desk limit at 25 mA also pulls LEDs inward (5% → 0% at 21 mm).
+- `node checks/thermal-40c.js`: with the full heat map the electronics alone (LEDs off) put the board at 62–90 °C, so 40 °C is impossible at any LED current. Even with the electronics off the board, 40 °C allows only 6.6 mA (1.08 W, 110 lm, 134 lx) in the worst case.
 - `node checks/example-variations.js`: reference numbers for the Baseline / A / B walkthrough.
 - `node checks/dimming-compare.js`: joint vs two-pass dimming.
 - `node checks/desk-limit.js`: desk limit at 25 and 20 mA.
-- `checks/ablation-output.txt`: record of the test that removed the extra score terms and camera moves.
+- `node checks/cct.js`: the colour-temperature table above.
+- `checks/ablation-output.txt`: record only (14 Oct, old model; the script no longer runs) of the test that removed the extra score terms and camera moves.
 
 ---
 

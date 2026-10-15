@@ -1,8 +1,8 @@
 Baseline: hex grid, CAD geometry (17.9 mm gap), 25 mA
-  evenness 15% | variation 24.7% | light out 373 lm | desk min 467 lx (avg 576) | board map 83–120 °C (Ben front-only 63–91) | LED chip ≤ 121 °C | light: out 50.2%, walls 27.4%, camera ring 0.10% | power 4.05 W | LED spacing 14.0–14.0 mm (avg 14.0)
+  evenness 1% | variation 40.7% | light out 373 lm | desk min 455 lx (avg 575) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 125 °C | light: out 50.4%, walls 27.7%, camera ring 0.03% | power 4.05 W | LED spacing 12.9–12.9 mm (avg 12.9)
 Variation A: optimized layout, CAD geometry
-  evenness 52% | variation 17.9% | light out 381 lm | desk min 481 lx (avg 587) | board map 84–121 °C (Ben front-only 63–91) | LED chip ≤ 121 °C | light: out 51.3%, walls 24.9%, camera ring 0.20% | power 4.05 W | LED spacing 4.5–19.9 mm (avg 10.5)
+  evenness 2% | variation 33.1% | light out 400 lm | desk min 500 lx (avg 617) | board map 85–124 °C (Ben front-only 63–91) | LED chip ≤ 125 °C | light: out 54.1%, walls 22.2%, camera ring 0.08% | power 4.05 W | LED spacing 4.5–15.5 mm (avg 8.7)
 What-if: optimized layout at a 10 mm gap
-  evenness 64% | variation 16.5% | light out 394 lm | desk min 495 lx (avg 606) | board map 77–119 °C (Ben front-only 56–88) | LED chip ≤ 119 °C | light: out 52.8%, walls 23.4%, camera ring 0.21% | power 4.05 W | LED spacing 5.2–21.2 mm (avg 15.3)
+  evenness 1% | variation 33.7% | light out 405 lm | desk min 501 lx (avg 625) | board map 78–121 °C (Ben front-only 56–88) | LED chip ≤ 122 °C | light: out 54.6%, walls 21.8%, camera ring 0.03% | power 4.05 W | LED spacing 4.5–18.5 mm (avg 14.0)
 What-if: optimized layout at a 25 mm gap
-  evenness 31% | variation 45.9% | light out 381 lm | desk min 481 lx (avg 588) | board map 86–122 °C (Ben front-only 66–92) | LED chip ≤ 122 °C | light: out 51.3%, walls 25.0%, camera ring 0.16% | power 4.05 W | LED spacing 4.6–20.0 mm (avg 8.5)
+  evenness 0% | variation 53.7% | light out 395 lm | desk min 500 lx (avg 611) | board map 88–125 °C (Ben front-only 66–92) | LED chip ≤ 126 °C | light: out 53.5%, walls 22.7%, camera ring 0.10% | power 4.05 W | LED spacing 4.5–15.1 mm (avg 6.7)

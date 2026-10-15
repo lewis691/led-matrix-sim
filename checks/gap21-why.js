@@ -1,5 +1,6 @@
 // Why does the 21 mm gap stay below 65 % evenness? Tests each suspect in turn.
-// Usage: node checks/gap21-why.js  (~2 min)
+// CAD geometry (lit aperture, bosses, default keepout); flux derated at the heat map's hottest LED chip.
+// Usage: node checks/gap21-why.js  (~3 min)
 'use strict';
 const path = require('path');
 const E = require(path.join(__dirname, '..', 'engine.js'))();
@@ -25,7 +26,7 @@ function run(label, c, opt) {
   return r;
 }
 const base = E.defaults();
-for (const gap of [10, 15, 21]) {
+for (const gap of [10, base.gap, 21]) {
   const c = E.clone(base); c.gap = gap;
   run(`gap ${gap} mm, default`, c, { deskLimit: true });
 }
@@ -33,11 +34,11 @@ const c21 = E.clone(base); c21.gap = 21;
 run('21 mm, desk limit off', c21, { deskLimit: false });
 const nc = E.clone(c21); nc.keep.on = false; run('21 mm, no camera', nc, { deskLimit: true });
 const sm = E.clone(c21); sm.edgeMargin = 0; sm.minPitch = 3.6; run('21 mm, LEDs allowed right at the wall', sm, { deskLimit: true });
-const rim = E.clone(c21); rim.evalInset = 5; run('21 mm, 5 mm rim hidden instead of 2', rim, { deskLimit: true });
+const rim = E.clone(c21); rim.evalInset = 5; run(`21 mm, 5 mm rim not scored (default ${base.evalInset})`, rim, { deskLimit: true });
 const n90 = E.clone(c21); n90.count = 90; run('21 mm, 90 LEDs', n90, { deskLimit: true });
 
 // Follow-up: the desk limit is the cause. How much light does the even layout give, and what current lets both pass?
 console.log('\nDesk light of the even (limit-off) layout, and current needed with the limit on:');
-function desk(c, pts) { const g = E.buildGeo(c, c.res), F = E.Field(g, c); F.setAll(pts); const m = E.metrics(g, F.E, pts.length), th = E.thermal(c, g.area, pts, {}), L = E.led(c, th.TjMax); return { m, d: E.taskLight(g, F.E, L.flux, c), lm: pts.length * L.flux * m.util * c.tau, util: m.util }; }
-for (const gap of [10, 21]) { const c = E.clone(base); c.gap = gap; const r = E.optimize(c, E.hex(c, E.buildPlacer(c), 60), { iters: 15000, seed: 11, deskLimit: false }); const q = desk(c, r.pts); console.log(`  ${gap} mm, limit off: evenness ${(q.m.minAvg * 100).toFixed(0)}%, light reaching diffuser ${(q.util * 100).toFixed(0)}%, light out ${q.lm.toFixed(0)} lm, desk min ${q.d.min.toFixed(0)} lx`); }
-for (const I of [27, 29, 31, 33]) { const c = E.clone(c21); c.current = I; const r = E.optimize(c, E.hex(c, E.buildPlacer(c), 60), { iters: 15000, seed: 11, deskLimit: true }); const q = desk(c, r.pts); const th = E.thermal(c, E.buildGeo(c, c.res).area, r.pts, {}); console.log(`  21 mm, ${I} mA, limit on: evenness ${(q.m.minAvg * 100).toFixed(0)}%, desk min ${q.d.min.toFixed(0)} lx, power ${(60 * E.led(c).Pel).toFixed(2)} W, board ${th.Tboard.toFixed(0)} °C worst case`); }
+function desk(c, pts) { const g = E.buildGeo(c, c.res), F = E.Field(g, c); F.setAll(pts); const m = E.metrics(g, F.E, pts.length), th = E.thermalMap(c, pts), L = E.led(c, th.TjMax); return { m, d: E.taskLight(g, F.E, L.flux, c), lm: pts.length * L.flux * m.util * c.tau, util: m.util }; }
+for (const gap of [base.gap, 21]) { const c = E.clone(base); c.gap = gap; const r = E.optimize(c, E.hex(c, E.buildPlacer(c), 60), { iters: 15000, seed: 11, deskLimit: false }); const q = desk(c, r.pts); console.log(`  ${gap} mm, limit off: evenness ${(q.m.minAvg * 100).toFixed(0)}%, light reaching diffuser ${(q.util * 100).toFixed(0)}%, light out ${q.lm.toFixed(0)} lm, desk min ${q.d.min.toFixed(0)} lx`); }
+for (const I of [27, 29, 31, 33]) { const c = E.clone(c21); c.current = I; const r = E.optimize(c, E.hex(c, E.buildPlacer(c), 60), { iters: 15000, seed: 11, deskLimit: true }); const q = desk(c, r.pts); const th = E.thermalMap(c, r.pts); console.log(`  21 mm, ${I} mA, limit on: evenness ${(q.m.minAvg * 100).toFixed(0)}%, desk min ${q.d.min.toFixed(0)} lx, power ${(60 * E.led(c).Pel).toFixed(2)} W, board ${th.Tmax.toFixed(0)} °C worst case (heat map)`); }

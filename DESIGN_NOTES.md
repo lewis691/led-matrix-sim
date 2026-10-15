@@ -22,7 +22,7 @@ horizontal values are as drawn and vertical values are de-projected (÷ 0.9781).
 | Camera (keepout) | lens centre = centre of the 4 M2 holes at (243.95, 95.45) drawn | **lens circle only, Ø 8 mm (assumed; the DXF shows no lens)** at (42.4, −13.3) mm from the dome centre. The IMX219 board (25.3 × 37.4 mm) is assumed to sit behind the LED board. Position is adjustable and can be optimized. |
 | Camera module | 4 mounting holes 21.0 × 13.6 mm | lens centre ≈ 42 mm right of and 13 mm below the dome centre |
 | Screw holes (Ø 2.6) | 3 | (−36.6, 53.9), (36.3, 53.9), (−46.8, −28.0) mm from the dome centre |
-| LED-placeable area | | **≈ 10,390 mm²** with the lens keepout (9,350 mm² with the whole camera module; 8,120 mm² with the original, too-large corner keepout) |
+| LED-placeable area | | **≈ 10,390 mm²** with the lens keepout (9,350 mm² with the whole camera module; 8,120 mm² with the original corner keepout, which is the default again since 15 Oct: the new prototype uses it) |
 
 **Diffuser vs back panel.** The DXF has one face outline, so I've assumed the diffuser and the LED back panel
 share it: the LED board fills the outline minus the camera block, and the diffuser covers the same outline with

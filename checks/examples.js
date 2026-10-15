@@ -1,5 +1,5 @@
 // Runnable proof that each feature does what it claims, checked against the source it comes from.
-// Usage (from the code folder):  node checks/examples.js        (~20 s)
+// Usage (from the code folder):  node checks/examples.js        (~1 min)
 'use strict';
 const path = require('path');
 const E = require(path.join(__dirname, '..', 'engine.js'))();
@@ -16,7 +16,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const c = E.clone(cfg); c.keep.on = false; const g = E.buildGeo(c, 0.5), out = new Float32Array(g.nD);
   E.ledContrib(g, c, 0, 0, out);
   // nearest cell to (x, y); r = that cell's distance from the LED at (0, 0)
-  const h = c.gap - c.ledH, at = (x, y) =>   // optical height: LED top (0.8 mm above the board) to the diffuser
+  const h = c.gap - c.ledH, at = (x, y) =>   // optical height: LED top (0.62 mm above the board, Pro9 p.23) to the diffuser
    { let best = 0, bd = Infinity; for (let k = 0; k < g.nD; k++) { const d = Math.hypot(g.dx[k] - x, g.dy[k] - y); if (d < bd) { bd = d; best = k; } } return { E: out[best], r: Math.hypot(g.dx[best], g.dy[best]) }; };
   const a = at(0, 0), b = at(h, 0), fa = h * h / (Math.PI * (h * h + a.r * a.r) ** 2), fb = h * h / (Math.PI * (h * h + b.r * b.r) ** 2);
   check('1. Single-LED light matches the closed-form formula', "Ben's 'LED research doc + sim'; Moreno 2006 Eq. 1 + incidence cosine",
@@ -28,7 +28,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
 {
   const c = E.clone(cfg); c.keep.on = false; c.gap = 3; const g = E.buildGeo(c, 0.5), out = new Float32Array(g.nD);
   E.ledContrib(g, c, -10, 20, out); let s = 0; for (const v of out) s += v * g.res * g.res;
-  const R = 40, bound = R * R / (R * R + 9);
+  const R = 40, h = c.gap - c.ledH, bound = R * R / (R * R + h * h);   // lit-aperture edge is >= 43 mm from (-10, 20)
   check('2. Light is conserved (nothing created or lost inside the head)', 'Lambertian integral (Ben\'s derivation: Φ = π I₀)',
     `≥ ${f(bound * 100, 1)}% lands on the diffuser (nearest wall ≥ 40 mm away), never > 100%`, `${f(s * 100, 2)}%`, s >= bound - 0.005 && s <= 1.0001);
 }
@@ -76,7 +76,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const pts = E.hex(cfg, placer, 60), th = E.thermal(cfg, E.buildGeo(cfg, 2).area, pts, {}), Pd = E.led(cfg, 25).Pel;
   const tj = th.Tboard + cfg.rjs * cfg.kh * Pd, q = cfg.kh * Pd * 60, eff = E.led(cfg, 125).flux / E.led(cfg, 25).flux;
   check('6. Heat and LED temperature follow Hui & Qin', 'Hui & Qin 2009, Eqs. 2, 3, 5a',
-    `Q = k_h·N·P_d = ${f(q, 3)} W; T_j = T_board + R_jc·k_h·P_d = ${f(tj, 2)} °C; flux at 125 °C = 1 − (1 − 33.7/36.2)/60·100 = ${f(1 - (1 - 33.7 / 36.2) / 60 * 100, 4)} (Pro9 p.5 85 °C column)`,
+    `Q = k_h·N·P_d = ${f(q, 3)} W; T_j = T_board + R_j-s·k_h·P_d = ${f(tj, 2)} °C; flux at 125 °C = 1 − (1 − 33.7/36.2)/60·100 = ${f(1 - (1 - 33.7 / 36.2) / 60 * 100, 4)} (Pro9 p.5 85 °C column)`,
     `Q = ${f(th.Q, 3)} W; T_j = ${f(th.TjMax, 2)} °C; flux ratio ${f(eff, 3)}`,
     Math.abs(th.Q - q) < 1e-9 && Math.abs(th.TjMax - tj) < 1e-9 && Math.abs(eff - (1 - (1 - 33.7 / 36.2) / 60 * 100)) < 1e-9);
 }
@@ -139,8 +139,10 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const pts = E.optimize(cfg, E.poisson(cfg, placer, 60, 2), { iters: 2000, seed: 2 }).pts, K = cfg.keep, g = E.buildGeo(cfg, 1.5), out = new Float32Array(g.nD);
   const minD = Math.min(...pts.map(p => Math.hypot(p.x - K.x, p.y - K.y)));
   E.ledContrib(g, cfg, pts[0].x, pts[0].y, out); let lit = 0; for (let k = 0; k < g.nD; k++) if (g.camMask[k] && out[k] > 0) lit++;
-  check('12. Camera lens: no LED inside its clearance, no light on the lens', 'DXF camera position; Notion Head page (camera flush with diffuser)',
-    `every LED body outside the dotted circle: centre ≥ ${f(K.r + K.margin + E.PKG_R, 2)} mm from the lens centre; 0 lit lens cells`, `closest LED centre ${f(minD, 2)} mm; ${lit} lit lens cells`, minD >= K.r + K.margin + E.PKG_R - 1e-6 && lit === 0);
+  const zoneD = K.zone === 'dxf' ? Math.min(...pts.map(p => E.zoneDist(K, p.x, p.y))) - K.boxMargin : K.zone === 'module' ? Math.min(...pts.map(p => E.modDist(K, p.x, p.y))) - K.margin : Infinity;
+  check(`12. Camera keepout (${K.zone}): no LED body inside it, no light on the lens`, 'Original keepout from WT - Lewis.dxf (zone); lens and hole from the Head STEP',
+    `LED centres ≥ ${f(K.r + K.margin + E.PKG_R, 2)} mm from the lens centre and ≥ ${f(E.PKG_R, 2)} mm (body half-diagonal) beyond the zone's clearance line; 0 lit lens cells`,
+    `closest to lens ${f(minD, 2)} mm; closest to zone ${f(zoneD, 2)} mm; ${lit} lit lens cells`, minD >= K.r + K.margin + E.PKG_R - 1e-6 && zoneD >= E.PKG_R - 1e-6 && lit === 0);
 }
 
 // 13. Spacing export: every listed neighbour pair respects the minimum spacing and matches the coordinates
@@ -165,7 +167,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const H = E.hex(cfg, placer, 60), g = E.buildGeo(cfg, cfg.res), groups = E.assignStrings(H, 5, g.areaD, 'zones', placer.sdfAt);
   const r = E.optimize(cfg, H, { iters: 4000, seed: 3, deskLimit: true, dimming: true, groups, minDuty: 0.3, regroup: { per: 5, mode: 'zones' } });
   const F = E.Field(g, cfg); F.setAll(r.pts, r.groups.map(q => r.duty[q]));
-  const th = E.thermal(cfg, g.area, r.pts, {}), d = E.taskLight(g, F.E, E.led(cfg, th.TjMax).flux, cfg);
+  const th = E.thermalMap(cfg, r.pts, { weights: r.groups.map(q => r.duty[q]) }), d = E.taskLight(g, F.E, E.led(cfg, th.TjMax).flux, cfg);   // derated as the optimizer does
   check('15. Desk-light limit holds through optimization and dimming', "Ben's Notion target: >= 500 lx over a 40 cm circle at 40 cm",
     'desk minimum >= 500 lx after Optimize with joint dimming', `${f(d.min, 0)} lx (optimizer reported ${f(r.deskMin, 0)} lx, met: ${r.deskOk})`, d.min >= 500 - 0.5 && r.deskOk);
 }
@@ -259,6 +261,17 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const ok = ['paint', 'standoffs', 'pcShell', 'alShell', 'typical', 'noElec', 'combo'].every(k => r[k] <= base + 0.05) && r.noElec < r.typical && r.combo < r.paint && base - r.standoffs < 5;
   check('24. Passive-cooling what-ifs behave physically', 'Monotonic heat paths; radial spreading in a thin wall ln(R/r)/(2πkt)',
     'every option ≤ base; no electronics < typical; combination < paint alone; standoffs alone < 5 °C gain', Object.entries(r).map(([k, v]) => `${k} ${f(v, 0)}`).join(', ') + ` (base ${f(base, 0)} °C)`, ok);
+}
+
+// 25. The current sweep's bisection gives the same answer as evaluating every 0.5 mA step with the full heat map
+{
+  const pts = E.hex(cfg, placer, 60), g = E.buildGeo(cfg, cfg.res), F = E.Field(g, cfg); F.setAll(pts);
+  const m = E.metrics(g, F.E, 60), o = { lmPerFlux: 60 * m.util * cfg.tau, luxPerFlux: E.taskLight(g, F.E, 1, cfg).min };
+  const a = E.sweepCurrent(cfg, g.area, pts, o), b = E.sweepCurrent(cfg, g.area, pts, { ...o, full: true });
+  const mono = b.rows.every((q, i) => !i || (q.lm >= b.rows[i - 1].lm && q.lux >= b.rows[i - 1].lux));
+  check('25. Current sweep: bisection = full scan (heat-map derating)', 'Light rises monotonically with current, so bisection is exact on the 0.5 mA grid',
+    'same lowest current; light and desk rise with every step', `bisection ${a.best ? f(a.best.I, 1) : 'none'} mA (${a.rows.length} maps), full ${b.best ? f(b.best.I, 1) : 'none'} mA (${b.rows.length} maps); monotonic ${mono}`,
+    mono && (a.best ? a.best.I : -1) === (b.best ? b.best.I : -1));
 }
 
 console.log(`${pass} passed, ${fail} failed`);

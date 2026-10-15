@@ -5,7 +5,7 @@ PASS  1. Single-LED light matches the closed-form formula
 
 PASS  2. Light is conserved (nothing created or lost inside the head)
       source:   Lambertian integral (Ben's derivation: Φ = π I₀)
-      expected: ≥ 99.4% lands on the diffuser (nearest wall ≥ 40 mm away), never > 100%
+      expected: ≥ 99.6% lands on the diffuser (nearest wall ≥ 40 mm away), never > 100%
       got:      99.81%
 
 PASS  3. Hex layout geometry reproduces Moreno's published optimum
@@ -25,7 +25,7 @@ PASS  5. Thermal network reproduces Ben's hand calculation
 
 PASS  6. Heat and LED temperature follow Hui & Qin
       source:   Hui & Qin 2009, Eqs. 2, 3, 5a
-      expected: Q = k_h·N·P_d = 3.443 W; T_j = T_board + R_jc·k_h·P_d = 90.98 °C; flux at 125 °C = 1 − (1 − 33.7/36.2)/60·100 = 0.8849 (Pro9 p.5 85 °C column)
+      expected: Q = k_h·N·P_d = 3.443 W; T_j = T_board + R_j-s·k_h·P_d = 90.98 °C; flux at 125 °C = 1 − (1 − 33.7/36.2)/60·100 = 0.8849 (Pro9 p.5 85 °C column)
       got:      Q = 3.443 W; T_j = 90.98 °C; flux ratio 0.885
 
 PASS  7. Driver limits from the Head schematic
@@ -41,27 +41,27 @@ PASS  8. Randomize is reproducible by seed and never breaks a limit
 PASS  9. Even out equalises the area per LED
       source:   Du, Faber & Gunzburger 1999 (Lloyd iteration)
       expected: spread of per-LED area drops a lot
-      got:      43% → 16%
+      got:      40% → 11%
 
 PASS  10. Optimize improves evenness and variation without breaking limits
       source:   Su, Xue & Ji 2012; Lei, Wang & Zou 2014
       expected: evenness ↑, variation ↓, no LED outside limits, same seed → same answer
-      got:      evenness 15% → 84%, variation 24.9% → 6.1%, legal true, repeatable true
+      got:      evenness 1% → 3%, variation 40.7% → 24.4%, legal true, repeatable true
 
 PASS  11. String dimming is linear; auto-balance raises evenness
       source:   Moreno 2006 §3.C (dimmed centre LED); Yang 2009 §III
       expected: halving string 1 removes exactly half its light; evenness after ≥ before
-      got:      light change 100.000% of expected; evenness 0% → 0% (light kept 90%)
+      got:      light change 100.000% of expected; evenness 3% → 3% (light kept 82%)
 
-PASS  12. Camera lens: no LED inside its clearance, no light on the lens
-      source:   DXF camera position; Notion Head page (camera flush with diffuser)
-      expected: every LED body outside the dotted circle: centre ≥ 10.33 mm from the lens centre; 0 lit lens cells
-      got:      closest LED centre 12.80 mm; 0 lit lens cells
+PASS  12. Camera keepout (dxf): no LED body inside it, no light on the lens
+      source:   Original keepout from WT - Lewis.dxf (zone); lens and hole from the Head STEP
+      expected: LED centres ≥ 10.33 mm from the lens centre and ≥ 2.33 mm (body half-diagonal) beyond the zone's clearance line; 0 lit lens cells
+      got:      closest to lens 25.77 mm; closest to zone 2.33 mm; 0 lit lens cells
 
 PASS  13. LED spacing table is consistent
       source:   Geometry (for building Baseline/A/B)
       expected: all pairs ≥ 4.5 mm, distances match positions
-      got:      146 pairs, min 14.0 mm, consistent true
+      got:      146 pairs, min 12.9 mm, consistent true
 
 PASS  14. Desk light reproduces Ben's worked example
       source:   Ben's Notion 'LED research doc + sim' (flux = E pi h^2 -> 251 lm for 500 lx at 40 cm)
@@ -81,7 +81,7 @@ PASS  16. Colour temperature flux matches the datasheet
 PASS  17. Lowest-current search finds the threshold
       source:   Old program's optimizeCurrent (lowest power meeting all constraints); targets 300 lm and 500 lx
       expected: returned current meets 300 lm and 500 lx; 0.5 mA lower misses one of them
-      got:      32.0 mA → 401 lm, 505 lx; at 31.5 mA: 395 lm, 498 lx
+      got:      31.5 mA → 404 lm, 503 lx; at 31.0 mA: 397 lm, 495 lx
 
 PASS  18. Constraint checklist catches limit breaks
       source:   Pro9 datasheet p.4 (Tj 125 C, -40..105 C); TLC59711 60.5 mA (R82); brief 40 C goal
@@ -91,7 +91,7 @@ PASS  18. Constraint checklist catches limit breaks
 PASS  19. Room light adds to the desk and lowers the current needed
       source:   Illuminances add (superposition); EN 12464-1 target is total task illuminance
       expected: desk min/avg rise by exactly 300 lx; lowest current with 300 lx room light < dark-room value
-      got:      min 377 → 677, avg 464 → 764 lx; lowest current 26.0 → 19.5 mA (light-out target still applies)
+      got:      min 369 → 669, avg 467 → 767 lx; lowest current 28.0 → 20.0 mA (light-out target still applies)
 
 PASS  20. Heat map reduces to Ben's network
       source:   Ben's Notion 'LED array heat calcs' network (front path); Fourier conduction in the board
@@ -101,12 +101,12 @@ PASS  20. Heat map reduces to Ben's network
 PASS  21. Heat map conserves energy; grid converged
       source:   Energy conservation; grid refinement
       expected: out = in = 8.042 W (LEDs 3.44 + electronics 4.60); hottest point within 0.5 °C on a finer grid
-      got:      out 8.042 W (front 5.84, back 1.86, bosses 0.34); 123.88 vs 123.83 °C
+      got:      out 8.042 W (front 5.84, back 1.86, bosses 0.34); 123.92 vs 123.90 °C
 
 PASS  22. Light budget accounts for every lumen
       source:   Energy conservation; STEP geometry (aperture, camera ring)
       expected: shares sum to 100 %; diffuser share = light landing on the aperture in the field model
-      got:      diffuser 71.68% (field 71.68%), walls 27.49%, camera 0.72%, ring 0.103% → 100.000%
+      got:      diffuser 72.06% (field 72.06%), walls 27.68%, camera 0.24%, ring 0.033% → 100.000%
 
 PASS  23. Warm-up settles on the steady heat map
       source:   Lumped RC model with the heat map's conductances (energy balance at steady state)
@@ -118,4 +118,9 @@ PASS  24. Passive-cooling what-ifs behave physically
       expected: every option ≤ base; no electronics < typical; combination < paint alone; standoffs alone < 5 °C gain
       got:      paint 91, standoffs 122, pcShell 123, alShell 119, typical 98, noElec 75, combo 58 (base 124 °C)
 
-24 passed, 0 failed
+PASS  25. Current sweep: bisection = full scan (heat-map derating)
+      source:   Light rises monotonically with current, so bisection is exact on the 0.5 mA grid
+      expected: same lowest current; light and desk rise with every step
+      got:      bisection 28.0 mA (8 maps), full 28.0 mA (120 maps); monotonic true
+
+25 passed, 0 failed

@@ -13,7 +13,7 @@ py -m http.server 8765 --bind 127.0.0.1
 Run this from the `code/` folder, then open <http://localhost:8765>. A short walkthrough starts on the first visit;
 replay it with **? Walkthrough**.
 
-Proof that each feature works, checked against its source (24 checks, ~1 min):
+Proof that each feature works, checked against its source (25 checks, ~1 min):
 
 ```powershell
 node checks/examples.js
@@ -21,8 +21,8 @@ node checks/examples.js
 
 ## Using it
 
-1. **Head & LEDs**: gap to the diffuser, camera lens (drag it or type its position; keepout = lens only or the
-   original DXF corner zone), LED count, colour temperature
+1. **Head & LEDs**: gap to the diffuser, camera lens (drag it or type its position; keepout = the original DXF corner zone (default,
+   used by the new prototype), the camera board footprint, or the lens only), LED count, colour temperature
    (2700–6500 K), typical or worst-case (−7%) flux, drive current (with **Find lowest current that meets the
    targets**), and targets (light, evenness, desk lux at 40 cm, board temperature, power), and room light already on the desk (0 = dark
    room, the default worst case).
@@ -81,12 +81,13 @@ maintenance, crowding, current sweep, checklist, modes) is justified one by one 
 - `assets/cad/*.stl`: Head STEP meshes (copied from `context/step_extract/meshes`), used by the 3D view at the CAD gap.
 - `engine.js`: geometry, light model, desk light, thermal, generators, optimizer, strings, exports. It runs in the
   browser, the background worker and Node.
-- `checks/examples.js` (+ `examples-output.txt`): 24 source-checked proofs.
+- `checks/examples.js` (+ `examples-output.txt`): 25 source-checked proofs.
 - `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%, with the lowest current meeting targets.
 - `checks/example-variations.js` (+ output): reference numbers for the Baseline / A / B walkthrough.
 - `checks/desk-limit.js` (+ output): the 500 lx desk limit at 25 and 20 mA.
 - `checks/dimming-compare.js` (+ output): joint vs two-pass dimming.
 - `checks/ablation-output.txt`: record of the score-term / camera-move test.
-- `checks/gap21-why.js`, `checks/thermal-40c.js` (+ outputs): why 21 mm misses 65% evenness, and why 40 °C can't be met.
+- `checks/gap21-why.js`, `checks/thermal-40c.js` (+ outputs): why evenness misses 65% (the keepout corner), and why 40 °C can't be met (the electronics alone exceed it).
+- `checks/cct.js` (+ output): colour temperature vs light, desk and lowest current.
 - `MODEL_NOTES.md`: point-form notes on every feature (how it works, equations, sources, what changed).
 - `READING_LIST.md`, `DESIGN_NOTES.md`: papers, dimension and architecture confirmations, analysis.

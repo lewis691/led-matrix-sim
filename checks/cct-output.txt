@@ -1,6 +1,8 @@
-3000 typ flux/LED 12.91 out 432 lm desk 544 lx | lowest I 23 mA 3.73 W
-3000 tol flux/LED 12.01 out 402 lm desk 506 lx | lowest I 25 mA 4.05 W
-4000 typ flux/LED 13.56 out 454 lm desk 571 lx | lowest I 22 mA 3.56 W
-4000 tol flux/LED 12.61 out 422 lm desk 531 lx | lowest I 23.5 mA 3.81 W
-5000 typ flux/LED 13.56 out 454 lm desk 571 lx | lowest I 22 mA 3.56 W
-5000 tol flux/LED 12.61 out 422 lm desk 531 lx | lowest I 23.5 mA 3.81 W
+Variation A at the CAD geometry (gap 17.9 mm), 25 mA, worst case heat
+
+3000 K typical | flux/LED 12.33 lm | out 400 lm | desk min 500 lx | lowest current meeting 300 lm + 500 lx: 25.0 mA (4.05 W, board 124 °C, chip 124.5 °C)
+3000 K -7 %    | flux/LED 11.47 lm | out 372 lm | desk min 465 lx | lowest current meeting 300 lm + 500 lx: 27.0 mA (4.37 W, board 126 °C, chip 127.1 °C > 125 limit)
+4000 K typical | flux/LED 12.96 lm | out 420 lm | desk min 526 lx | lowest current meeting 300 lm + 500 lx: 24.0 mA (3.89 W, board 123 °C, chip 123.2 °C)
+4000 K -7 %    | flux/LED 12.05 lm | out 391 lm | desk min 489 lx | lowest current meeting 300 lm + 500 lx: 26.0 mA (4.21 W, board 125 °C, chip 125.8 °C > 125 limit)
+5000 K typical | flux/LED 12.96 lm | out 420 lm | desk min 526 lx | lowest current meeting 300 lm + 500 lx: 24.0 mA (3.89 W, board 123 °C, chip 123.2 °C)
+5000 K -7 %    | flux/LED 12.05 lm | out 391 lm | desk min 489 lx | lowest current meeting 300 lm + 500 lx: 26.0 mA (4.21 W, board 125 °C, chip 125.8 °C > 125 limit)

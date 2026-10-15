@@ -22,15 +22,16 @@ function HeadLEDEngine() {
       // camera = lens circle only. Centre = centre of the IMX219 board's 4 mounting holes in the DXF;
       // camera, from the Head STEP (context/step_extract): barrel Ø14 at the top (r 7), flush with the diffuser's outer
       // face, in a Ø16 diffuser hole (holeR 8): the 1 mm ring between them is open to the room. The camera board +
-      // lens holder (25 x 24 mm, x 30..55, y -21.945..2.055) sits ON the LED board front, so LEDs can't go there
-      // (zone 'module', relative to the lens centre). 'lens' = barrel circle only (what-if), 'dxf' = original corner.
+      // lens holder (25 x 24 mm, x 30..55, y -21.945..2.055) sits ON the LED board front.
+      // LED keepout (zone): 'dxf' (default) = the original corner keepout drawn in WT - Lewis.dxf, which the new
+      // prototype uses (user, 15 Oct); 'module' = camera board footprint only; 'lens' = barrel circle only (what-if).
       keep: { on: true, x: 42.4, y: -13.3, r: 7, holeR: 8, occlude: true, margin: 1.0,
         mod: { dx0: -12.4, dx1: 12.6, dy0: -8.645, dy1: 15.355 },
-        // zone: 'lens' = only the lens circle is kept clear (default); 'dxf' = also the original keepout drawn in the DXF:
-        // the corner region x >= 19.0, y <= 19.22 mm (relative to the lens: dx = -23.4, dy = +32.52, so it moves with the
-        // camera). Original clearance: LED centre >= 2.3 mm from the zone; with the datasheet package (PKG_R 2.33) that is
-        // a body clearance of about 0, so 0 is used.
-        zone: 'module', boxDx: -23.4, boxDy: 32.52, boxMargin: 0 },
+        // 'dxf' zone: the corner region x >= 19.0, y <= 19.22 mm (relative to the lens: dx = -23.4, dy = +32.52, so it
+        // moves with the camera); it contains the whole camera board. Original clearance: LED centre >= 2.3 mm from the
+        // zone; with the datasheet package (PKG_R 2.33) that is a body clearance of about 0, so 0 is used. The diffuser
+        // over the corner is still scored for evenness (the whole face should glow evenly; user, 15 Oct).
+        zone: 'dxf', boxDx: -23.4, boxDy: 32.52, boxMargin: 0 },
       // board screw holes (STEP). TL/TR carry the Head Front screw bosses (Ø8.6, 3 mm tall on the board front), so the
       // LED body must clear r 4.3; BL has only a screw head (holeClear).
       holes: [{ x: -36.658, y: 53.885, clear: 4.3 }, { x: 36.299, y: 53.885, clear: 4.3 }, { x: -46.808, y: -27.989 }],
@@ -74,7 +75,7 @@ function HeadLEDEngine() {
       // (minus camW) is spread evenly. Empty = all spread evenly (positions unknown).
       elecSpots: [],
       mapRes: 2.5,
-      cadV: 2,              // geometry version: 1 = measured from the Head STEP; 2 = + datasheet package size/height (audit)
+      cadV: 3,              // geometry version: 1 = measured from the Head STEP; 2 = + datasheet package size/height (audit); 3 = original DXF keepout
       targetLm: 300, targetUniformPct: 65, maxBoard: 40, powerBudget: 4,
       // desk target (Ben's Notion 'LED research doc + sim', citing EN 12464-1): >= 500 lx over a 40 cm circle at 40 cm
       taskZ: 400, taskD: 400, targetLux: 500, deskLimit: true,
@@ -174,7 +175,7 @@ function HeadLEDEngine() {
     for (let c = 0; c < geo.nD; c++) {
       const d = Math.hypot(geo.dx[c] - cam.x, geo.dy[c] - cam.y);
       geo.camMask[c] = cam.on && d <= (cam.holeR || cam.r) ? 1 : 0;   // diffuser hole: barrel top + open ring
-      geo.dEval[c] = geo.dEvalBase[c] && !(cam.on && d < cam.r + geo.evalInset) ? 1 : 0;
+      geo.dEval[c] = geo.dEvalBase[c] && !geo.camMask[c] && !(cam.on && d < cam.r + geo.evalInset) ? 1 : 0;   // the hole is never scored
     }
   }
   function geoKey(cfg) { return JSON.stringify([cfg.shape, cfg.keep, cfg.gap, cfg.ledH, cfg.apInset, cfg.m, cfg.evalInset]); }
@@ -754,13 +755,13 @@ function HeadLEDEngine() {
   // ---------------------------------------------------------------- passive-cooling what-ifs (same heat map, one change each)
   // Each changes one input; material values are typical textbook values (ASSUMED), labelled in the UI.
   const WHATIFS = [
-    { key: 'paint', name: 'Board back painted / anodised black', note: 'emissivity 0.1 → 0.9 (bare vs black-anodised aluminium, typical)', apply: c => { c.pcb.epsBack = 0.9; } },
-    { key: 'standoffs', name: 'Aluminium standoffs instead of PLA bosses', note: 'boss k 0.13 → 138 W/m·K', apply: c => { c.bossK = 138; } },
-    { key: 'pcShell', name: 'Head Back in PC instead of PLA', note: 'wall k 0.13 → 0.2 W/m·K (Ben\'s PC value)', apply: c => { c.shellK = 0.2; } },
-    { key: 'alShell', name: 'Head Back in aluminium', note: 'wall k → 138 W/m·K; outside emissivity 0.85 (anodised, typical)', apply: c => { c.shellK = 138; c.epsShell = 0.85; } },
+    { key: 'paint', passive: true, name: 'Board back painted / anodised black', note: 'emissivity 0.1 → 0.9 (bare vs black-anodised aluminium, typical)', apply: c => { c.pcb.epsBack = 0.9; } },
+    { key: 'standoffs', passive: true, name: 'Aluminium standoffs instead of PLA bosses', note: 'boss k 0.13 → 138 W/m·K', apply: c => { c.bossK = 138; } },
+    { key: 'pcShell', passive: true, name: 'Head Back in PC instead of PLA', note: 'wall k 0.13 → 0.2 W/m·K (Ben\'s PC value)', apply: c => { c.shellK = 0.2; } },
+    { key: 'alShell', passive: true, name: 'Head Back in aluminium', note: 'wall k → 138 W/m·K; outside emissivity 0.85 (anodised, typical)', apply: c => { c.shellK = 138; c.epsShell = 0.85; } },
     { key: 'typical', name: 'Electronics at typical power', note: 'your table: 2.0 W instead of 4.6 W worst case', apply: c => { c.elecW = 2.0; c.camW = Math.min(c.camW, 0.33); } },
     { key: 'noElec', name: 'Electronics off this board', note: 'LED heat only (as in Ben\'s calc)', apply: c => { c.elecW = 0; c.camW = 0; c.elecSpots = []; } },
-    { key: 'combo', name: 'Black back + aluminium standoffs + Al Head Back', note: 'the three passive changes together', apply: c => { c.pcb.epsBack = 0.9; c.bossK = 138; c.shellK = 138; c.epsShell = 0.85; } },
+    { key: 'combo', passive: true, name: 'Black back + aluminium standoffs + Al Head Back', note: 'the three passive changes together', apply: c => { c.pcb.epsBack = 0.9; c.bossK = 138; c.shellK = 138; c.epsShell = 0.85; } },
   ];
   function whatIf(cfg, leds, key, opt) {
     const w = WHATIFS.find(x => x.key === key), c = clone(cfg); if (w) w.apply(c);
@@ -791,20 +792,32 @@ function HeadLEDEngine() {
   // Light out and desk lux scale with flux, which depends on current and (via Tj) on the board temperature.
   // opt: { weights, lmPerFlux, luxPerFlux } with lmPerFlux = n*util*tau (light out per lm/LED),
   // luxPerFlux = lamp-only desk minimum per lm/LED (room light cfg.roomLux is added on top). Steps of 0.5 mA up to the TLC59711 limit.
+  // Lowest current (0.5 mA steps up to the driver limit) meeting the light-out and desk targets. Each step derates the
+  // flux at the full heat map's hottest LED chip. Light rises with current, so the grid is bisected (about 7 map solves);
+  // opt.full evaluates every step (used by the checks to confirm the bisection). areaMm2 is unused (kept for callers).
   function sweepCurrent(cfg, areaMm2, leds, opt) {
-    const tlcMax = drive(cfg, leds.length).tlcMax, rows = [];
-    let best = null;
-    for (let I = 1; I <= tlcMax + 1e-9; I += 0.5) {
-      const c = clone(cfg); c.current = I;
-      const th = thermal(c, areaMm2, leds, { weights: opt.weights }), L = led(c, th.TjMax);
-      const wSum = (opt.weights || leds.map(() => 1)).reduce((a, b) => a + b, 0);
-      const row = { I, lm: L.flux * opt.lmPerFlux, lux: L.flux * opt.luxPerFlux + (cfg.roomLux || 0), P: wSum * L.Pel, Tboard: th.Tboard, TjMax: th.TjMax };
+    const tlcMax = drive(cfg, leds.length).tlcMax, grid = [];
+    for (let I = 1; I <= tlcMax + 1e-9; I += 0.5) grid.push(I);
+    const wSum = (opt.weights || leds.map(() => 1)).reduce((a, b) => a + b, 0), memo = new Map();
+    const at = i => {
+      if (memo.has(i)) return memo.get(i);
+      const c = clone(cfg); c.current = grid[i];
+      const th = thermalMap(c, leds, { weights: opt.weights, thermalCase: opt.thermalCase }), L = led(c, th.TjMax);
+      const row = { I: grid[i], lm: L.flux * opt.lmPerFlux, lux: L.flux * opt.luxPerFlux + (cfg.roomLux || 0), P: wSum * L.Pel, Tboard: th.Tmax, TjMax: th.TjMax };
       row.ok = row.lm >= cfg.targetLm && (!opt.luxPerFlux || row.lux >= cfg.targetLux);
-      rows.push(row);
-      if (row.ok && !best) best = row;
+      memo.set(i, row); return row;
+    };
+    let best = null;
+    if (opt.full) { for (let i = 0; i < grid.length; i++) { const r = at(i); if (r.ok && !best) best = r; } }
+    else if (grid.length && at(grid.length - 1).ok) {
+      let lo = -1, hi = grid.length - 1;   // at(hi) ok; at(lo) not ok (or below the grid)
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid).ok) hi = mid; else lo = mid; }
+      best = at(hi); if (hi > 0) at(hi - 1);
     }
+    const rows = [...memo.values()].sort((a, b) => a.I - b.I);
     return { best, rows, tlcMax };
   }
+
 
   // ---------------------------------------------------------------- constraint checklist
   // Restores the old program's checklist (lumens, lux, board, junction, shell, power, uniform, placement, driver,
@@ -977,7 +990,7 @@ function HeadLEDEngine() {
     // desk limit: penalise any shortfall below targetLux (so an infeasible start climbs toward it), and once the limit
     // is met never accept a move that breaks it
     const limitOn = !!opt.deskLimit, target = cfg.targetLux;
-    const flux = limitOn ? (opt.flux || led(cfg, thermal(cfg, geo.area, pts, { weights: wts }).TjMax).flux) : 0;
+    const flux = limitOn ? (opt.flux || led(cfg, thermalMap(cfg, pts, { weights: wts }).TjMax).flux) : 0;   // derated at the heat map's hottest chip, as the app shows
     const dm = limitOn ? deskModel(geo, cfg) : null;
     const evalJ = E => {
       const m = metrics(geo, E, n, true), J = objective(cfg, m);

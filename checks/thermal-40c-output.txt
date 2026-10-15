@@ -1,4 +1,8 @@
-10 mm, worst: R_total 18.2 K/W (gap 7.8, diffuser 0.42, outside 10.0) | 25 mA: 4.05 W -> board 88 C | 40 C board allows 5.1 mA = 0.82 W -> 101 lm out, desk min 128 lx
-10 mm, best : R_total 9.1 K/W (gap 6.0, diffuser 0.42, outside 2.7) | 25 mA: 4.05 W -> board 56 C | 40 C board allows 11.6 mA = 1.88 W -> 232 lm out, desk min 292 lx
-21 mm, worst: R_total 19.3 K/W (gap 8.9, diffuser 0.42, outside 10.0) | 25 mA: 4.05 W -> board 91 C | 40 C board allows 4.6 mA = 0.75 W -> 77 lm out, desk min 97 lx
-21 mm, best : R_total 11.4 K/W (gap 8.2, diffuser 0.42, outside 2.7) | 25 mA: 4.05 W -> board 64 C | 40 C board allows 9.0 mA = 1.45 W -> 149 lm out, desk min 187 lx
+Hex layout, 60 LEDs, electronics 4.6 W (worst case, your power table), room 25 °C, board goal 40 °C
+
+17.9 mm, worst | Ben front network 19.1 K/W (gap 8.7, diffuser 0.42, outside 10.0) | heat map: 0 mA (electronics only) board 89.2 °C, 25 mA (4.05 W) board 123.9 °C | 40 °C impossible: the electronics alone exceed it
+17.9 mm, best  | Ben front network 10.9 K/W (gap 7.8, diffuser 0.42, outside 2.7) | heat map: 0 mA (electronics only) board 61.7 °C, 25 mA (4.05 W) board 84.9 °C | 40 °C impossible: the electronics alone exceed it
+  21 mm, worst | Ben front network 19.3 K/W (gap 8.9, diffuser 0.42, outside 10.0) | heat map: 0 mA (electronics only) board 89.7 °C, 25 mA (4.05 W) board 124.4 °C | 40 °C impossible: the electronics alone exceed it
+  21 mm, best  | Ben front network 11.4 K/W (gap 8.2, diffuser 0.42, outside 2.7) | heat map: 0 mA (electronics only) board 62.8 °C, 25 mA (4.05 W) board 86.5 °C | 40 °C impossible: the electronics alone exceed it
+
+Electronics off the board, 17.9 mm, worst case: 40 °C allows 6.6 mA = 1.08 W -> 110 lm out, desk min 134 lx (targets 300 lm, 500 lx)

@@ -6,7 +6,7 @@ const E = require(path.join(__dirname, '..', 'engine.js'))();
 const c = E.defaults(), pl = E.buildPlacer(c), g = E.buildGeo(c, 1.5);
 const J = m => c.w.cv * m.cv + c.w.min * (1 - m.minAvg), p = (v, d = 0) => (v * 100).toFixed(d) + '%';
 const rows = [];
-console.log('6 runs (3 starts x 2 seeds), 6000 iterations, zone strings, min duty 0.3, 10 mm gap\n');
+console.log(`6 runs (3 starts x 2 seeds), 6000 iterations, zone strings, min duty 0.3, ${c.gap} mm gap, default keepout\n`);
 for (const [sn, S] of [['hex', E.hex(c, pl, 60)], ['random A', E.poisson(c, pl, 60, 4)], ['random B', E.poisson(c, pl, 60, 8)]]) for (const seed of [9, 31]) {
   // two-pass: optimize positions at full power, then group strings and balance duties
   const a = E.optimize(c, S, { iters: 6000, seed });

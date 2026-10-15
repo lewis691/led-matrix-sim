@@ -6,7 +6,7 @@
 'use strict';
 function HeadView3D(host, E) {
   const THREE = window.THREE;
-  const opt = { scene: 'diagram', board: 'leds', mode: 'spots', range: 25, relief: 1, ev: 0, expose: 'diffuser', beams: false, walls: 'glass', explode: 0, rho: 0.5, fill: 0.3 };
+  const opt = { scene: 'diagram', roomLook: 'real', irInside: false, board: 'leds', mode: 'spots', range: 25, relief: 1, ev: 0, expose: 'diffuser', beams: false, walls: 'glass', explode: 0, rho: 0.5, fill: 0.3 };
   const roomOf = d => d.cfg.roomLux || 0; // room light on the desk (model input, step 1)
   let designs = [], panels = [], placed = false, autoCam = null, lastRoomMode = false; // autoCam: preset to re-fit on resize until the user moves the camera
   const orb = { th: 0.75, ph: 2.1, r: 340, tgt: new THREE.Vector3() };
@@ -92,13 +92,13 @@ function HeadView3D(host, E) {
 
     // board + LEDs (brightness = duty)
     { const g = new THREE.ShapeGeometry(shapeFromPoly(poly)); g.rotateX(Math.PI / 2); g.translate(0, yBoard + 0.01, 0); if (!heatBoard) add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x1f5a3a, roughness: 0.8, side: THREE.DoubleSide }))); }
-    const ledGeo = new THREE.BoxGeometry(2.8, 0.8, 3.5);
-    leds.forEach((q, i) => { const du = d.duty[i] == null ? 1 : d.duty[i]; const m = add(new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(rgb[0], rgb[1], rgb[2]).multiplyScalar(0.25 + 0.75 * du) }))); m.position.copy(P(q.x, q.y, yBoard - 0.4)); });
+    const ledGeo = new THREE.BoxGeometry(E.PKG_W, E.PKG_H, E.PKG_L);   // Pro9 datasheet p.23
+    leds.forEach((q, i) => { const du = d.duty[i] == null ? 1 : d.duty[i]; const m = add(new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(rgb[0], rgb[1], rgb[2]).multiplyScalar(0.25 + 0.75 * du) }))); m.position.copy(P(q.x, q.y, yBoard - E.PKG_H / 2)); });
     // half-intensity beam cones, theta_1/2 = acos(0.5^(1/m)) (Moreno Eq. 2)
     if (opt.beams) {
-      const th = Math.acos(Math.pow(0.5, 1 / cfg.m)), h = yBoard - 0.8 - yDiff, cg = new THREE.ConeGeometry(h * Math.tan(th), h, 40, 1, true); cg.translate(0, -h / 2, 0);
+      const th = Math.acos(Math.pow(0.5, 1 / cfg.m)), h = yBoard - cfg.ledH - yDiff, cg = new THREE.ConeGeometry(h * Math.tan(th), h, 40, 1, true); cg.translate(0, -h / 2, 0);
       const cm = new THREE.MeshBasicMaterial({ color: new THREE.Color(rgb[0], rgb[1], rgb[2]), transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-      for (const q of leds) { const m = add(new THREE.Mesh(cg, cm)); m.position.copy(P(q.x, q.y, yBoard - 0.8)); }
+      for (const q of leds) { const m = add(new THREE.Mesh(cg, cm)); m.position.copy(P(q.x, q.y, yBoard - cfg.ledH)); }
     }
     // walls (absorbing in the model): the real Head Front (STEP) at the CAD gap, else a straight band
     const useCad = cadReady(cfg) && ex === 0;
@@ -182,7 +182,7 @@ function HeadView3D(host, E) {
   // (E.deskMap); walls, floor and props get the same intensity pattern with correct distance and angle.
   // Not modelled: light bouncing off walls and furniture (no interreflection), so shadowed areas look darker than in a
   // real room; shadows come from a point at the diffuser centre, softened by a blur to suggest the 14 cm-wide source.
-  function buildRoom(pn, d) {
+  function buildRoom(pn, d, S) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x020203);
     const { cfg, geo } = d, p = prep(d), gap = cfg.gap, h = cfg.taskZ, rgb = cctRGB(E.CCT[cfg.cct] ? cfg.cct : 4000);
     const lampCol = new THREE.Color(rgb[0], rgb[1], rgb[2]), poly = geo.poly;
@@ -215,7 +215,7 @@ function HeadView3D(host, E) {
     addH(spot);
     // room light (model input, lx on horizontal surfaces) + a faint fill so the room isn't pitch black
     const room = cfg.roomLux || 0;
-    addH(new THREE.HemisphereLight(0xd8e0ff, 0x3a3028, room + opt.fill));
+    const hemi = addH(new THREE.HemisphereLight(0xd8e0ff, 0x3a3028, room + opt.fill)); const cadObjs = {};
 
     // --- room: floor, two walls, skirting
     const floor = add(new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), mat(0x6b4a32, 0.65))); floor.rotation.x = -Math.PI / 2; floor.position.y = yFloor; floor.receiveShadow = true;
@@ -251,7 +251,7 @@ function HeadView3D(host, E) {
     let neckEnd = null;
     if (cadReady(cfg)) {
       for (const nm of Object.keys(CAD_PARTS)) {
-        const m = addH(cadMesh(nm, mat(CAD_PARTS[nm], nm.startsWith('DM') ? 0.4 : 0.7, nm.startsWith('DM') ? { metalness: 0.5 } : {})));
+        const m = addH(cadMesh(nm, mat(CAD_PARTS[nm], nm.startsWith('DM') ? 0.4 : 0.7, nm.startsWith('DM') ? { metalness: 0.5 } : {}))); cadObjs[nm] = m;
         if (nm === 'Neck') { m.geometry.computeBoundingBox(); const bb = m.geometry.boundingBox; neckEnd = new THREE.Vector3((bb.min.x + bb.max.x) / 2, (bb.min.y + bb.max.y) / 2, bb.max.z); }
       }
     } else {
@@ -278,7 +278,30 @@ function HeadView3D(host, E) {
     const dg = new THREE.ShapeGeometry(shapeFromPoly(poly)), uv = dg.attributes.uv, pa = dg.attributes.position;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, (pa.getX(i) - geo.gx0) / (nx * geo.res), (pa.getY(i) - geo.gy0) / (ny * geo.res));
     dg.rotateX(Math.PI / 2); dg.translate(0, yDiff - 1.05, 0);
-    addH(new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ map: dtex, color: lampCol.clone().multiplyScalar(Lmax), side: THREE.DoubleSide })));
+    const diffMesh = addH(new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ map: dtex, color: lampCol.clone().multiplyScalar(Lmax), side: THREE.DoubleSide })));
+
+    // ---- thermal-camera look: colour ONLY the surfaces the heat map computes; everything else is plain grey
+    //   diffuser outer surface: per-cell temperature from thermalMap (Ben's outside resistance over each cell)
+    //   (or, with "see inside", the LED board map itself)
+    //   Head Back outer surface: one lumped temperature (thermalMap's shell node -> outside)
+    //   Head Front, camera, neck, motor, furniture, room: NOT modelled -> grey (no invented temperatures)
+    if (opt.roomLook === 'thermal' && d.map) {
+      const M = d.map, Ta = cfg.ambient, Thi = Math.max(S.Thi, Ta + 1);
+      const tcol = T => { const c = lut(SEQ, Math.max(0, Math.min(1, (T - Ta) / (Thi - Ta)))); return new THREE.Color(c[0], c[1], c[2]); };
+      scene.remove(spot); scene.remove(spot.target); scene.remove(hemi); scene.background = new THREE.Color(0x050608);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55)); const dl = new THREE.DirectionalLight(0xffffff, 0.5); dl.position.set(-800, 1500, 900); scene.add(dl);
+      const grey = new THREE.MeshLambertMaterial({ color: 0x3b3f46 }), greyH = new THREE.MeshLambertMaterial({ color: 0x5a5f68 });
+      fur.traverse(o => { if (o.isMesh) o.material = grey; });
+      for (const nm of Object.keys(cadObjs)) cadObjs[nm].material = nm === 'Head_Back' && Number.isFinite(M.TshellOut) ? new THREE.MeshBasicMaterial({ color: tcol(M.TshellOut) }) : greyH;
+      scene.traverse(o => { if (o.isMesh && o.material && o.material.isMeshStandardMaterial) o.material = greyH; });   // stand, base, fallback shell
+      scene.remove(diffMesh);
+      const c = M.cells, h0 = c.res / 2, pos = [], col = [], vals = opt.irInside ? c.T : c.Tdo, yy = opt.irInside ? 0.5 : yDiff - 1.05;
+      for (let k = 0; k < c.x.length; k++) { const cl = tcol(vals[k]); for (const [ax, ay] of [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]]) { pos.push(c.x[k] + ax * h0, yy, c.y[k] + ay * h0); col.push(cl.r, cl.g, cl.b); } }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+      if (opt.irInside) { for (const nm of ['Head_Front', 'Camera']) if (cadObjs[nm]) cadObjs[nm].visible = false; }
+      pn.thermal = { Ta, Thi };
+    } else pn.thermal = null;
     if (cfg.keep.on && !cadReady(cfg)) { const K = cfg.keep, lens = addH(new THREE.Mesh(new THREE.CircleGeometry(K.r, 32), mat(0x050506, 0.15, { metalness: 0.6 }))); lens.rotation.x = Math.PI / 2; lens.position.set(K.x, yDiff - 1.1, K.y); }
 
     // exposure: like a camera metered on the nightstand top (average luminance there), adjustable in EV
@@ -333,9 +356,10 @@ function HeadView3D(host, E) {
     designs.forEach((d, i) => {
       const pn = panels[i], r = pn.renderer; disposeScene(pn.scene);
       // renderer set-up differs: the diagram computes its own display colours; the room uses physical lights + tone mapping
-      r.physicallyCorrectLights = roomMode; r.shadowMap.enabled = roomMode; r.shadowMap.type = THREE.VSMShadowMap;
-      r.toneMapping = roomMode ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping; r.outputEncoding = roomMode ? THREE.sRGBEncoding : THREE.LinearEncoding;
-      if (roomMode) { buildRoom(pn, d); r.toneMappingExposure = pn.exposure; } else buildPanel(pn, d, S);
+      const ir = roomMode && opt.roomLook === 'thermal', real = roomMode && !ir;   // thermal look: computed colours, no photometry
+      r.physicallyCorrectLights = real; r.shadowMap.enabled = real; r.shadowMap.type = THREE.VSMShadowMap;
+      r.toneMapping = real ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping; r.outputEncoding = real ? THREE.sRGBEncoding : THREE.LinearEncoding;
+      if (roomMode) { buildRoom(pn, d, S); r.toneMappingExposure = pn.exposure; } else buildPanel(pn, d, S);
       pn.lab.innerHTML = d.label || '';
     });
     if (roomMode !== lastRoomMode) { lastRoomMode = roomMode; placed = false; autoCam = null; }
@@ -350,6 +374,7 @@ function HeadView3D(host, E) {
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, Rh = Math.hypot(x1 - x0, y1 - y0) / 2, asp = panels[0] ? panels[0].cam.aspect : 1.5;
     const vf = 40 * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp), fit = Rh * 1.08 / Math.sin(Math.min(vf, hf) / 2);
     if (which === 'room') { orb.tgt.set(cx + 60, -g - z - 40, cy - 40); orb.r = 1500; orb.th = Math.PI - 0.55; orb.ph = 1.2; }
+    else if (which === 'roomLamp') { orb.tgt.set(cx, -g - 20, cy); orb.r = 520; orb.th = Math.PI - 0.6; orb.ph = 1.95; }
     else if (which === 'roomLow') { orb.tgt.set(cx, -g - z + 120, cy); orb.r = 800; orb.th = Math.PI - 0.35; orb.ph = 1.45; }
     else if (which === 'head') { orb.tgt.set(cx, -g, cy); orb.r = fit; orb.th = 0.6; orb.ph = 2.2; }
     else if (which === 'below') { orb.tgt.set(cx, -g, cy); orb.r = fit; orb.th = 0; orb.ph = Math.PI - 0.02; }
@@ -360,7 +385,8 @@ function HeadView3D(host, E) {
   const view = {
     // list: [{ label, cfg, geo, E, leds, duty, flux }], first = reference for the Real-look exposure
     update(list) { designs = list; loadCad(); build(); },
-    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
+    debug() { const out = []; if (panels[0] && panels[0].scene) panels[0].scene.traverse(o => { if (o.isMesh) out.push([o.material.type, o.material.color ? o.material.color.getHexString() : '', o.material.vertexColors ? 'vc' : '', o.geometry.type, o.visible]); }); return out; },
+    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow', 'roomLamp'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
     set(k, v) { opt[k] = v; build(); },
     png() { // all panels side by side in one image
       renderAll(); const cs = panels.map(p => p.renderer.domElement), cols = cs.length <= 1 ? 1 : 2, rows = Math.ceil(cs.length / cols), w = cs[0].width, h = cs[0].height;

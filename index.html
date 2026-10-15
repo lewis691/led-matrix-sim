@@ -27,7 +27,8 @@ button.on{outline:2px solid var(--accent);outline-offset:-2px;background:var(--a
 button:disabled{opacity:.45;cursor:default}
 select,input[type=number],input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%;min-width:0}
 input[type=range]{width:100%;accent-color:var(--accent)}
-.chk-t{width:100%;border-collapse:collapse;font-size:12px}.chk-t th,.chk-t td{text-align:left;padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.chk-t .src{color:var(--muted,#8b96a8);font-size:11px}
+.chk-t{width:100%;border-collapse:collapse;font-size:12px}.chk-t th,.chk-t td{text-align:left;padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.evid{max-height:320px;overflow:auto;margin-top:6px}.evid table{width:100%;border-collapse:collapse;font-size:11.5px}.evid td{padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.evid .k{white-space:nowrap;font-weight:600;font-size:10.5px}.ev-datasheet,.ev-cad,.ev-ben,.ev-paper,.ev-schematic,.ev-brief,.ev-derived{color:var(--good)}.ev-assumed{color:var(--warn)}.ev-user{color:#b197fc}.ev-knowledge{color:#74c0fc}
+.chk-t .fixbtn{font-size:11px;padding:2px 6px;white-space:nowrap}.chk-t .src{color:var(--muted,#8b96a8);font-size:11px}
 .bad{color:var(--bad)!important}.good{color:var(--good)!important}.warn{color:var(--warn)!important}
 
 /* header + stepper */
@@ -242,7 +243,7 @@ th{color:var(--muted);font-weight:600}
           <label class="f"><span class="lbl">Height scale</span><input type="number" data-k="shape.sy" step="0.01" min="0.5" max="1.5"></label>
           <label class="f"><span class="lbl">Beam m <span class="q" data-tip="LED beam shape, cos^m. 1 = Lambertian (the 2835 is close to this). Higher = narrower beam.">?</span></span><input type="number" data-k="m" step="0.1" min="0.5" max="10"></label>
           <label class="f"><span class="lbl">Wall gap <span class="q" data-tip="Smallest gap between an LED body and the head wall (mm). The dashed yellow line shows it; no LED body may cross any dotted line.">?</span></span><input type="number" data-k="edgeMargin" step="0.1" min="0" max="20"></label>
-          <label class="f"><span class="lbl">Min spacing <span class="q" data-tip="Closest two LED centres may be (mm). A 2835 package is 2.8 × 3.5 mm.">?</span></span><input type="number" data-k="minPitch" step="0.1" min="3" max="30"></label>
+          <label class="f"><span class="lbl">Min spacing <span class="q" data-tip="Closest two LED centres may be (mm). The JB2835B package is 3.58 × 2.97 mm (Pro9 datasheet p.23).">?</span></span><input type="number" data-k="minPitch" step="0.1" min="3" max="30"></label>
           <label class="f"><span class="lbl">Ignore rim <span class="q" data-tip="Width of the diffuser rim (mm) left out of the evenness numbers, because the shell lip hides it.">?</span></span><input type="number" data-k="evalInset" step="0.5" min="0" max="15"></label>
         </div>
         <div class="grid3" style="margin-top:6px">
@@ -402,6 +403,11 @@ th{color:var(--muted);font-weight:600}
         <div id="checkList"></div>
       </div>
       <div class="block">
+        <h3>Evidence: where every number comes from <span class="q" data-tip="Each model value and its source, from an independent audit that opened every source file. Green = checked in a source; amber = assumed (edit it if you have better data); blue = standard value or datasheet not in the project files.">?</span></h3>
+        <div class="row"><select id="evKind"><option value="">All</option><option value="assumed">Assumed only</option><option value="knowledge">Not in the project files</option><option value="user">Your answers</option><option value="cad">From the CAD</option><option value="datasheet">From the datasheet</option></select><input type="search" id="evQ" placeholder="search, e.g. PLA" style="flex:1"></div>
+        <div id="evidence" class="evid"></div>
+      </div>
+      <div class="block">
         <h3>Export</h3>
         <div class="row">
           <button id="saveCsv" title="Position, string and dimming of every LED">LED positions (CSV)</button>
@@ -458,7 +464,7 @@ th{color:var(--muted);font-weight:600}
             <label>Walls <select id="v3walls"><option value="glass">see-through</option><option value="solid">solid</option><option value="hide">hidden</option></select></label>
             <label>Open up <input type="range" id="v3explode" min="0" max="1" step="0.05" value="0" style="width:60px"></label>
             <label class="chk"><input type="checkbox" id="v3beams"> beam cones</label></span>
-            <span id="v3roomOpts" style="display:none"><label>exposure <input type="range" id="v3roomEv" min="-4" max="4" step="0.25" value="0" style="width:80px"></label> <button data-v3cam="room">Room</button><button data-v3cam="roomLow">Nightstand</button></span>
+            <span id="v3roomOpts" style="display:none"><label title="Real look: light and shadows. Thermal camera: colours only the temperatures the heat map computes (diffuser surface, Head Back), everything not modelled is grey.">Look <select id="v3roomLook"><option value="real">Real (light)</option><option value="thermal">Thermal camera</option></select></label> <label class="chk" title="Thermal camera only: show the LED board's temperature map instead of the diffuser surface (hides Head Front and camera)"><input type="checkbox" id="v3irInside"> see inside</label> <label>exposure <input type="range" id="v3roomEv" min="-4" max="4" step="0.25" value="0" style="width:80px"></label> <button data-v3cam="room">Room</button><button data-v3cam="roomLow">Nightstand</button><button data-v3cam="roomLamp">Lamp</button></span>
             <span class="v3sep"></span>
             <span>Compare with:</span><span id="v3cmp"></span>
             <label class="chk" title="Put the first ticked snapshot first, so it sets the reference for Real-look exposure and relief height"><input type="checkbox" id="v3refSnap" checked> snapshot is reference</label>
@@ -490,8 +496,9 @@ th{color:var(--muted);font-weight:600}
 <div id="tip" role="tooltip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="engine.js?v=21"></script>
-<script src="view3d.js?v=9"></script>
-<script src="app.js?v=27"></script>
+<script src="engine.js?v=23"></script>
+<script src="view3d.js?v=13"></script>
+<script src="evidence.js?v=1"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

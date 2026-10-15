@@ -32,6 +32,8 @@
       if (!keepGap) c.gap = d.gap;
       c.cadV = 1; cadMigrated = true;
     }
+    // v2: LED height 0.62 mm and package size from the Pro9 datasheet (evidence audit)
+    if (c && c.cadV === 1) { c.ledH = E.defaults().ledH; if (c.keep) c.keep.boxMargin = 0; c.cadV = 2; cadMigrated = true; }
     if (c && !c.bodyMargins) { if (c.edgeMargin != null) c.edgeMargin = Math.max(0, +(c.edgeMargin - E.PKG_R).toFixed(2)); c.bodyMargins = true; } // margins now limit the LED body
     return c;
   }
@@ -233,7 +235,7 @@
     }
     // LEDs
     const bad = res ? res.bad : new Set(), showS = $('showStrings').checked, showL = $('showLabels').checked;
-    const w = 2.8 * T.s, h = 3.5 * T.s;
+    const w = E.PKG_W * T.s, h = E.PKG_L * T.s;   // JB2835B package, Pro9 datasheet p.23
     leds.forEach((p, i) => {
       const x = sx(p.x), y = sy(p.y);
       const du = cfg.duty[p.s] == null ? 1 : cfg.duty[p.s];
@@ -275,7 +277,10 @@
     const TILED = ['Light out', 'Desk light (min)', 'Evenness', 'Board temperature', 'LED power'];
     const issues = chk.filter(c => !c.ok && !TILED.includes(c.k)).map(c => `${c.k}: ${c.val} (limit ${c.lim})`);
     if (!d.full) issues.push('Strings are uneven: LED count is not a multiple of LEDs per string');
-    $('checkList').innerHTML = `<table class="chk-t"><tr><th></th><th>Check</th><th>Now</th><th>Limit</th><th>Limit from</th></tr>${chk.map(c => `<tr><td class="${c.ok ? 'good' : 'bad'}">${c.ok ? '✓' : '✕'}</td><td>${c.k}</td><td>${esc(c.val)}</td><td>${esc(c.lim)}</td><td class="src">${esc(c.src)}</td></tr>`).join('')}</table>`;
+    // each failed check offers the tool that addresses it
+    const FIX = { 'Light out': ['sweep', 'Find current'], 'Desk light (min)': ['sweep', 'Find current'], 'Evenness': ['optimize', 'Optimize'], 'Placement': ['optimize', 'Optimize'],
+      'Board temperature': ['heat', 'See heat'], 'LED junction': ['heat', 'See heat'], 'Diffuser outside (touch)': ['heat', 'See heat'], 'PLA bosses touching the board': ['heat', 'See heat'], 'Head Back inside (PLA)': ['heat', 'See heat'], 'LED power': ['sweep', 'Find current'], 'Driver current': ['current', 'Current'] };
+    $('checkList').innerHTML = `<table class="chk-t"><tr><th></th><th>Check</th><th>Now</th><th>Limit</th><th>Limit from</th><th></th></tr>${chk.map(c => `<tr><td class="${c.ok ? 'good' : 'bad'}">${c.ok ? '✓' : '✕'}</td><td>${c.k}</td><td>${esc(c.val)}</td><td>${esc(c.lim)}</td><td class="src">${esc(c.src)}</td><td>${!c.ok && FIX[c.k] ? `<button class="fixbtn" data-fix="${FIX[c.k][0]}">${FIX[c.k][1]} →</button>` : ''}</td></tr>`).join('')}</table>`;
     $('strip').innerHTML =
       tile(2, ev >= tU ? 'ok' : ev >= tU * 0.8 ? 'mid' : 'no', 'Evenness', 'Darkest spot on the diffuser ÷ average brightness. 100% = perfectly even. Click to go to Layout.', fmt(ev * 100, 0), '%', `target ≥ ${fmt(cfg.targetUniformPct, 0)}% · variation ${fmt(m.cv * 100, 1)}%`) +
       tile(3, r.outLm >= cfg.targetLm ? 'ok' : r.outLm >= cfg.targetLm * 0.85 ? 'mid' : 'no', 'Light out', 'Lumens leaving the diffuser. Click to go to Light &amp; dimming.', fmt(r.outLm, 0), 'lm', `target ≥ ${fmt(cfg.targetLm, 0)} lm`) +
@@ -314,7 +319,7 @@
     if (th) $('thermKv').innerHTML = kv([
       [`Heat in the head ${tip('LEDs: k_h × electrical power (Hui & Qin 2009). Electronics: your worst-case figure from the 24 V input (SoC, XVF3800, camera, mics and DC/DC losses).')}`, `${fmt(th.map.Q.total, 2)} W (LEDs ${fmt(th.map.Q.led, 2)} + electronics ${fmt(th.map.Q.elec, 2)})`],
       [`Board: hottest / coolest ${tip('From the 2-D map. A metal-core board spreads heat so well that it is nearly one temperature.')}`, `${fmt(th.map.Tmax, 1)} / ${fmt(th.map.Tmin, 1)} °C`],
-      [`Hottest LED chip ${tip('Board under the LED + heat × (R_jc 5 K/W [Cree] + dielectric under the pad, assumed 0.1 mm, k 2).')}`, fmt(th.map.TjMax, 1) + ' °C (limit 125)'],
+      [`Hottest LED chip ${tip('Board under the LED + heat × (R_j-s 5 K/W, Pro9 p.4 + dielectric 0.1 mm, k 2 (assumed) over the 6.47 mm² recommended pad, Pro9 p.23).')}`, fmt(th.map.TjMax, 1) + ' °C (limit 125)'],
       [`Heat leaves via ${tip('Front: through the air gap and diffuser (Ben). Back: across the back cavity to Head Back and out. Mounts: through the PLA screw bosses.')}`, `front ${fmt(th.map.Q.front, 2)} · back ${fmt(th.map.Q.back, 2)} · bosses ${fmt(th.map.Q.mounts, 2)} W`],
       [`Diffuser outside (hottest) ${tip('Outer surface of the diffuser, the part people can touch.')}`, fmt(th.map.TdOutMax, 1) + ' °C'],
       [`PLA bosses / Head Back inside ${tip('PLA softens near 55–60 °C (glass transition). The bosses touch the board directly.')}`, `<span class="${th.map.Tboss > cfg.plaMax ? 'bad' : 'good'}">${fmt(th.map.Tboss, 1)}</span> / <span class="${th.map.TshellIn > cfg.plaMax ? 'bad' : 'good'}">${fmt(th.map.TshellIn, 1)}</span> °C`],
@@ -605,7 +610,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
   }
   cv.addEventListener('pointermove', e => {
     const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-    $('cursor').textContent = `x ${fmt(wx(px), 1)}, y ${fmt(wy(py), 1)} mm`;
+    $('cursor').textContent = `x ${fmt(wx(px), 1)}, y ${fmt(wy(py), 1)} mm` + cursorReadout(wx(px), wy(py));
     if (camDrag) { moveCam(wx(px), wy(py)); return; }
     if (!drag) return;
     pending = { x: wx(px) + drag.dx, y: wy(py) + drag.dy };
@@ -710,6 +715,37 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
   // ------------------------------------------------------------ steps, overlay buttons, tooltips
   let step = 1;
   const STEP_HINT = { 1: 'Set the gap, LED count and current on the left', 2: 'Drag LEDs, or use Randomize / Optimize on the left', 3: 'Diffuser brightness: yellow = bright, purple = dark', 4: 'Click 🌡 Heat to see the board temperature map; numbers on the left', 5: 'Save snapshots on the left to compare them' };
+  $('checkList').addEventListener('click', e => {
+    const b = e.target.closest('[data-fix]'); if (!b) return; const f = b.dataset.fix;
+    if (f === 'sweep') { setStep(1); $('sweepI').click(); $('sweepI').scrollIntoView({ block: 'center' }); }
+    else if (f === 'optimize') { setStep(2); $('optimize').scrollIntoView({ block: 'center' }); $('optimize').focus(); }
+    else if (f === 'heat') { setStep(4); setOverlay('heat'); }
+    else if (f === 'current') { setStep(1); document.querySelector('[data-k="current"]').focus(); }
+  });
+  // evidence table (evidence.js): every number with its source; filter by kind or search
+  const EV_LABEL = { datasheet: 'datasheet', cad: 'CAD', ben: "Ben/Notion", paper: 'paper', schematic: 'schematic', brief: 'brief', derived: 'derived', user: 'you', assumed: 'ASSUMED', knowledge: 'not in files' };
+  function evidencePanel() {
+    const ev = window.HEAD_EVIDENCE || [], k = $('evKind').value, q = $('evQ').value.trim().toLowerCase();
+    const rows = ev.filter(r => (!k || r[2] === k) && (!q || r.join(' ').toLowerCase().includes(q)));
+    $('evidence').innerHTML = `<table>${rows.map(r => `<tr><td class="k ev-${r[2]}">${EV_LABEL[r[2]] || r[2]}</td><td><b>${esc(r[0])}</b>: ${esc(r[1])}<br><span class="hint" style="margin:0">${esc(r[3])}</span></td></tr>`).join('')}</table>` + (rows.length ? '' : '<p class="hint">Nothing matches.</p>');
+  }
+  $('evKind').addEventListener('change', evidencePanel); $('evQ').addEventListener('input', evidencePanel); evidencePanel();
+  // what the active overlay shows under the cursor: board temperature (heat) or diffuser brightness (light)
+  function cursorReadout(x, y) {
+    const ov = $('overlay').value;
+    if (ov === 'heat' && therm && therm.map) {
+      const c = therm.map.cells; let b = -1, bd = Infinity;
+      for (let k = 0; k < c.x.length; k++) { const d = (c.x[k] - x) ** 2 + (c.y[k] - y) ** 2; if (d < bd) { bd = d; b = k; } }
+      return b >= 0 && bd < c.res * c.res ? ` · board ${fmt(c.T[b], 1)} °C · diffuser surface ${fmt(c.Tdo[b], 1)} °C` : '';
+    }
+    if (ov === 'diffuser' && res && leds.length) {
+      const ix = Math.floor((x - geo.gx0) / geo.res), iy = Math.floor((y - geo.gy0) / geo.res);
+      if (ix < 0 || iy < 0 || ix >= geo.nx || iy >= geo.ny) return '';
+      const c = geo.dIdx[iy * geo.nx + ix]; if (c < 0 || geo.camMask[c]) return '';
+      return ` · ${fmt(field.E[c] / res.m.mean * 100, 0)}% of average · ${fmt(field.E[c] * res.L.flux * 1e6 * cfg.tau, 0)} lx out`;
+    }
+    return '';
+  }
   // ------------------------------------------------------------ 3D view (view3d.js): drawn from the model's own numbers.
   // Shows the current design and up to 3 snapshots side by side, one camera, one shared scale.
   var v3 = null, v3on = false, v3t = 0, v3timer = 0, v3pick = null; // var: refresh() may run before this line during start-up
@@ -759,6 +795,13 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     v3timer = setTimeout(() => { v3t = performance.now(); v3draw(); }, wait);
   }
   function v3infoText(S, o) {
+    if (o.scene === 'room' && o.roomLook === 'thermal') {
+      const M = therm && therm.map;
+      $('v3info').innerHTML = `<b>Thermal camera</b> (${M ? M.case : ''} case): <span class="v3grad seq"></span> ${fmt(cfg.ambient, 0)} → ${fmt(Math.max(S.Thi, cfg.ambient + 1), 0)} °C.` +
+        ` Coloured only where the heat map computes a temperature: ${o.irInside ? `the <b>LED board</b> (${M ? fmt(M.Tmin, 0) + '–' + fmt(M.Tmax, 0) : '—'} °C)` : `the <b>diffuser outer surface</b> (up to ${M ? fmt(M.TdOutMax, 0) : '—'} °C)`} and the <b>Head Back outer surface</b> (one lumped value, ${M ? fmt(M.TshellOut, 0) : '—'} °C).` +
+        '<br><span style="opacity:.75">Grey = not modelled (Head Front, camera, neck, motor, furniture, room): no temperature is invented for them. An IR camera would see the diffuser, not the board; tick "see inside" for the board.</span>';
+      return;
+    }
     if (o.scene === 'room') {
       $('v3info').innerHTML = `<b>Bedroom nightstand</b>: diffuser ${cfg.taskZ / 10} cm above the nightstand top. The lamp's light is one shadow-casting light whose brightness pattern is fitted to the model, so the nightstand top gets exactly the model's desk lux; walls, bed and props get the same light with correct distance and angle. The diffuser glows with the model's brightness map. Room light: ${cfg.roomLux || 0} lx (step 1) + a faint ${o.fill} lx fill so the room is visible.` +
         '<br><span style="opacity:.75">Not modelled: light bouncing off walls and furniture, so shadows look darker than in a real room. Shadows are softened to suggest the 14 cm-wide diffuser; real penumbras will differ. The camera exposure is metered on the nightstand top, like a phone camera.</span>';
@@ -776,7 +819,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     if (on && !window.THREE) { toast('3D needs three.js from cdn.jsdelivr.net, which did not load (offline?).', 6000); return; }
     v3on = on; $('v3d').style.display = on ? '' : 'none'; $('btn3d').classList.toggle('on', on);
     if (on) {
-      if (!v3) { v3 = HeadView3D($('v3dHost'), E); v3.onInfo = v3infoText; new ResizeObserver(() => v3 && v3on && v3.resize()).observe($('v3dHost')); }
+      if (!v3) { v3 = HeadView3D($('v3dHost'), E); window.__v3 = v3; v3.onInfo = v3infoText; new ResizeObserver(() => v3 && v3on && v3.resize()).observe($('v3dHost')); }
       v3pickPanel(); v3draw();
     }
   }
@@ -788,6 +831,8 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     if (v3) { v3.opt.ev = room ? Number($('v3roomEv').value) : Number($('v3ev').value); v3.set('scene', e.target.value); }
   });
   $('v3roomEv').addEventListener('input', e => { if (v3) v3.set('ev', Number(e.target.value)); });
+  $('v3roomLook').addEventListener('change', e => { if (v3) v3.set('roomLook', e.target.value); });
+  $('v3irInside').addEventListener('change', e => { if (v3) v3.set('irInside', e.target.checked); });
   $('v3refSnap').addEventListener('change', v3draw);
   const v3modeUi = () => { const m = $('v3mode').value; $('v3realOpts').style.display = m === 'real' ? '' : 'none'; $('v3rangeL').style.display = m === 'spots' ? '' : 'none'; };
   [['v3mode', 'mode'], ['v3expose', 'expose'], ['v3walls', 'walls'], ['v3range', 'range'], ['v3board', 'board']].forEach(([id, k]) => $(id).addEventListener('change', e => { if (k === 'mode') v3modeUi(); if (v3) v3.set(k, k === 'range' ? Number(e.target.value) : e.target.value); }));
@@ -879,7 +924,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
   const restored = restore();
   syncInputs();
   if (cadMigrated) setTimeout(() => persist(), 1500);   // save the migrated design so the notice shows only once
-  if (cadMigrated) setTimeout(() => toast('Updated your saved design to the measured CAD geometry: 17.9 mm gap, camera board footprint, screw bosses, lit aperture. LEDs now inside a keepout show red; re-optimize. Snapshots kept their gap.', 9000), 600);
+  if (cadMigrated) setTimeout(() => toast('Updated your saved design to the measured geometry (Head STEP + LED datasheet: 17.9 mm gap, 0.62 mm LED height, camera board footprint, screw bosses, lit aperture). LEDs now inside a keepout show red; re-optimize. Snapshots kept their gap.', 9000), 600);
   geo = E.buildGeo(cfg, cfg.res); placer = E.buildPlacer(cfg);
   if (!restored || !leds.length) leds = E.hex(cfg, placer, cfg.count);
   ensureStrings(false);

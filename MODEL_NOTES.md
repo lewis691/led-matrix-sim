@@ -31,11 +31,30 @@ Values are the program defaults (`engine.js → defaults()`), checked against th
 
 ## 0. Overall: what changed from LED Matrix Lab
 
+**Evidence audit (14 Oct, after the CAD update)**
+- **Method:** an independent pass opened every source file and checked every number in `engine.js`, `app.js` and `view3d.js`. I re-checked each mismatch myself (datasheet drawing, Moreno's paper, Notion) before changing anything. The full list, with each value's source, is in the app (step 5 → Evidence) and in `evidence.js`.
+- **Fixed:**
+
+  | Item | Was | Now | Evidence |
+  |---|---|---|---|
+  | LED package height (optical height) | 0.8 mm (17.1 mm) | **0.62 mm (17.28 mm)** | Pro9 p.23 side view; optical origin on the top face |
+  | LED package outline (body clearances) | 2.8 × 3.5 mm, PKG_R 2.24 | **3.58 × 2.97 mm**, PKG_R 2.33 | Pro9 p.23 top view |
+  | Pad area under the LED (chip temperature) | 9.8 mm² | **6.47 mm²** (dielectric ≈ 7.7 K/W) | Pro9 p.23 recommended footprint |
+  | Front screw bosses (heat map) | 5 mm long, 62.15 mm² | **3 mm, 62.13 mm²**; joined to Head Back through the butt joint (lumped, [Mine]) | STEP |
+  | Light-formula citation | "Moreno Eq. 3" | Moreno **Eq. 1** (cos^m) × incidence cosine = Ben's derivation. Moreno's Eq. 3 writes z^m/R^(m+2), so their m counts the incidence cosine | Moreno 2006 text |
+  | Driver-limit citation | "Head_Board.pdf" | R82 from Head_Board.pdf; 41 × 1.21 V/R from the TLC59711 datasheet (not in the project files) | schematic text |
+  | Unlabelled constants | — | labelled: FR4 k (now in-plane 0.8), shell-surface linearisation, derating floor, 25 mA default, 0.4 V headroom | — |
+  | Stale comment, notes | "8 mm lens"; "lens clearance 1.5" | removed; 1.0 mm (as coded) | — |
+- **Confirmed (not wrong, just not in the local files):** 500 lx and 40 cm with EN 12464-1, and "diffuser must pass at least 70%". Both are in Ben's Notion pages ('LED research doc + sim', 'Head:'), checked 14 Oct.
+- **Still assumed (labelled):** metal-core stack-up, PLA properties, electronics placement, FR4 comparison values, display-only values, optimizer settings.
+- **Known minor:** the DXF's right lower corner is R 33.84 vs the left R 33.64; the outline mirrors the left one (the STEP width still matches to 0.05 mm).
+- **Effect:** board and chip temperatures change by about 1 °C; light changes by under 1%. All 22 checks pass. Saved designs update automatically (cadV 2).
+
 **Latest: measured CAD geometry, full heat map, light budget (14 Oct, from the Head STEP)**
 
 | What | Before (assumed) | Now (measured or answered) | Source |
 |---|---|---|---|
-| Board → diffuser gap | 10 mm | **17.9 mm**, uniform; light starts 0.8 mm up (LED height), so the optical height is 17.1 mm | [STEP] |
+| Board → diffuser gap | 10 mm | **17.9 mm**, uniform; light starts 0.62 mm up (LED height, Pro9 p.23), so the optical height is 17.28 mm | [STEP] |
 | Where light reaches the diffuser | whole outline, 2 mm rim excluded from scoring | only the Head Front **lip opening**, 3.6 mm inside the board edge (10,530 mm²); anything outside hits the walls, 43° chamfer or lip | [STEP] |
 | Camera | Ø 8 mm lens (assumed) | **Ø 14 barrel** flush with the diffuser in a **Ø 16 hole**: 1 mm open ring to the room. The **25 × 24 camera board** sits on the LED board, so it's an LED keepout (default) | [STEP] |
 | Screw holes | DXF positions, 3.5 mm clearance | STEP positions; TL/TR carry Ø 8.6 Head Front bosses (clearance 4.3) | [STEP] |
@@ -137,9 +156,9 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 **Clearances (the dotted lines)**
 - **What:** every dotted line is a limit for the whole LED **body**:
   - wall gap 1.3 mm (dashed yellow line)
-  - lens clearance 1.5 mm (dotted circle)
+  - camera clearance 1.0 mm (barrel circle and camera-board footprint)
   - screw-head radius 3.5 mm
-- **How:** an LED centre must be at least (clearance + 2.24 mm) away. 2.24 mm = half the diagonal of a 2.8 × 3.5 mm 2835 package.
+- **How:** an LED centre must be at least (clearance + 2.33 mm) away. 2.33 mm = half the diagonal of the 3.58 × 2.97 mm JB2835B package (Pro9 p.23).
 - **Spacing:** minimum LED centre-to-centre distance 4.5 mm (package + 1 mm gap).
 - **Source:** package size [Cree] (2835); gap values [Mine]. Notion says LEDs should be within 2 mm of the camera board [Notion-Head].
 - **Changed:** the old program used a simple package-overlap test. Earlier versions of this program checked LED centres only, so bodies could cross the lines.
@@ -156,11 +175,11 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 
 **Light from each LED onto the diffuser**
 - **Equation (per unit LED flux):** E(r) = (m+1)·h^(m+1) / (2π·(r² + h²)^((m+3)/2))
-  - h = optical height = gap − LED height = 17.9 − 0.8 = 17.1 mm [STEP], r = horizontal distance, m = 1 (Lambertian).
+  - h = optical height = gap − LED height = 17.9 − 0.62 = 17.28 mm [STEP], [Cree] p.23; r = horizontal distance, m = 1 (Lambertian).
   - For m = 1 this is **E = Φh² / (π(h² + r²)²)**.
 - **Total:** the sum over all LEDs. Light adds linearly.
 - **Source:**
-  - [Moreno06] Eq. 3 (cos^m point source).
+  - [Moreno06] Eq. 1 (cos^m intensity) × the incidence cosine on a plane [Textbook]. Moreno's own Eq. 3 is written z^m/R^(m+2): their m also counts the incidence cosine, so their m = 2 is this m = 1. Check 3 reproduces their 0.192 z within 0.001 for that reason.
   - [Ben-Light] derives exactly the m = 1 form: inverse square × cosine incidence × Lambertian emission.
   - Check 1 matches the formula to 7 digits.
 - **Changed:**
@@ -187,7 +206,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 - **Zero by geometry:** board windows, edge gap and screw holes have no line of sight from any LED [STEP]. Seams are sealed and the shell is opaque [User].
 - **Typical (hex, 25 mA):** out 50%, diffuser loss 22%, walls 27%, barrel 0.7%, ring 0.10%. Check 22: the shares sum to 100% and the diffuser share equals the field model's.
 - **Not modelled:** light piped inside the diffuser to its 1 mm edge (seen through the groove), and light scattered back from the diffuser and reflected (treated as absorbed).
-- **Source:** [Moreno06] Eq. 3; geometry [STEP]; materials [User]. **Changed:** new.
+- **Source:** the same kernel as above; geometry [STEP]; materials [User]. **Changed:** new.
 
 **Hotspot ripple check**
 - **What:** check 4 shows the model reproduces Yang's Fourier prediction for a large hex array.
@@ -343,7 +362,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **Back:** across the back cavity, using the **local depth from the STEP** (5 mm map, mean 59 mm): k_air·Nu / L (Ben's Nu for the case) + radiation (board back ε 0.1 bare aluminium, shell 0.9) to the Head Back inner surface; then the 3 mm PLA wall (k 0.13) and outside convection (Ben's h) + radiation over the STEP room-facing area 36,467 mm².
   - **Bosses:** 6 PLA screw bosses touching the board (STEP contact areas 52–62 mm², 5 mm long) into the same Head Back node.
 - **Solver:** conjugate gradients with a two-level (Jacobi + 10 mm aggregate) preconditioner; radiation re-linearised over 4 outer iterations. About 40–150 ms.
-- **LED chip:** T_j = T_board under it + heat × (R_jc 5 K/W [Cree] + dielectric 0.1 mm / (2 W/m·K × 9.8 mm² pad) ≈ 5.1 K/W, ASSUMED).
+- **LED chip:** T_j = T_board under it + heat × (R_j-s 5 K/W [Cree] p.4 + dielectric 0.1 mm / (2 W/m·K × 6.47 mm² recommended pad, [Cree] p.23) ≈ 7.7 K/W; dielectric values ASSUMED).
 - **Board:** metal-core [User]; ASSUMED typical values until the stack-up exists: 1.6 mm aluminium (k 138), 1 oz copper, 0.1 mm dielectric (k 2). "FR4" is a comparison option. Editable in step 4 → "Board and electronics".
 - **Checks:**
   - **Check 20:** with the back path off, no electronics and a near-perfect board, the map gives **exactly Ben's board temperature** (90.69 °C).
@@ -380,9 +399,9 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 **Heat and LED chip temperature**
 - **How:**
   - Heat Q = k_h × Σ(P_LED × duty), with k_h = 0.85.
-  - T_j = T_board + R_jc × k_h × P_LED, with R_jc = 5 K/W.
+  - T_j = T_board + R × k_h × P_LED, with R = R_j-s (junction to solder point) = 5 K/W.
   - T_j also sets the flux derating.
-- **Source:** [Hui09] Eqs. 3 and 5a (k_h = 0.85 is their measured value, for 2009-era LEDs); R_jc [Cree].
+- **Source:** [Hui09] Eqs. 3 and 5a (k_h = 0.85 is their measured value, for 2009-era LEDs); R_j-s [Cree] p.4 (Hui's equation uses R_jc; the datasheet gives junction-to-solder-point).
 - **Changed:** the old program used electrical power minus radiant light (via 300 lm/W) plus a hotspot term. Replaced by Hui's form.
 
 ---
@@ -525,7 +544,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 **Exports (step 5)**
 - **LED positions CSV:** id, string, duty, x/y, x from the left edge, y from the bottom edge, nearest LED and its distance, DXF-drawn coordinates.
 - **LED spacing CSV:** every neighbouring pair and its distance.
-- **DXF:** layers OUTLINE, CAMERA (lens circle), LED_BODY (2.8 × 3.5 rectangles), LED_CENTRE, LED_LABEL, SPACING (lines and distance labels; optional).
+- **DXF:** layers OUTLINE, CAMERA (lens circle), LED_BODY (3.58 × 2.97 package rectangles, Pro9 p.23), LED_CENTRE, LED_LABEL, SPACING (lines and distance labels; optional).
 - **Source:** [Mine]. **Changed:** the old app exported an x/y CSV only.
 
 **3D view and 3D compare** (🧊 3D above the canvas; `view3d.js`, three.js r147)
@@ -575,9 +594,24 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 - **Display-only assumptions:** material colours and roughness; nightstand albedo about 0.45 for the exposure meter; blackbody LED colour.
 - **Source:** light pattern from the model ([Ben-Light] desk method, [Moreno06] Lambertian); rendering [Mine]. **Changed:** new.
 
+**Thermal-camera view** (3D → Bedroom nightstand → Look: *Thermal camera*)
+- **What:** the nightstand scene coloured like an IR camera, on one °C scale (room temperature → hottest board point).
+- **Only computed temperatures are coloured:**
+  - the diffuser outer surface, per cell (thermalMap: Ben's outside resistance over each cell)
+  - the Head Back outer surface, one lumped value
+  - with "see inside": the LED board map
+
+  Everything the model doesn't compute is plain grey: Head Front, camera, neck, motor, furniture, room. No temperature is invented for them.
+- **Source:** thermalMap (§5). **Changed:** new.
+
+**Other usability additions**
+- **Cursor readout:** hovering the canvas shows the board and diffuser-surface temperature (🌡 Heat), or brightness as % of average and lx (☀ Light).
+- **Fix buttons:** each failed checklist row offers the tool that addresses it: Find current, Optimize, See heat.
+- **Evidence panel:** step 5. Every model value with its source, filterable (assumed only, not in the project files, your answers, CAD, datasheet) and searchable.
+
 **Room light (dark room vs lit room)**
 - **The model is a dark room:** every lux and luminance value is the lamp's own light.
-- **Ben's documentation:** room light appears only qualitatively. "Find LED baseline ranges" cites Stevens' power law for perceived brightness, S ∝ Iⁿ with n between 1/3 and 1/2, and notes that the same lux feels brighter in a dark room than in sunlight. He used the law to turn lux ratios into perceived differences (1200/1000 lx → about 9.5%; 700/500 lx → about 18.3%), not to add room light. His heat calcs' "ambient" is 25 °C air, not light. Elsewhere in Notion, the software side has an `ambient_light` input meant to regulate lamp output ("Data Collection") and an adaptive mode that uses "only a low fill light during daylight" ("Polish Adaptive Light Experience"). So the lamp is expected to run brightest in the dark.
+- **Ben's documentation:** room light appears only qualitatively. "Find LED baseline ranges" cites a power law for perceived brightness (Stevens' law, my attribution; Ben doesn't name it), S ∝ Iⁿ with n between 1/3 and 1/2, and notes that the same lux feels brighter in a dark room than in sunlight. He used the law to turn lux ratios into perceived differences (1200/1000 lx → about 9.5%; 700/500 lx → about 18.3%), not to add room light. His heat calcs' "ambient" is 25 °C air, not light. Elsewhere in Notion, the software side has an `ambient_light` input meant to regulate lamp output ("Data Collection") and an adaptive mode that uses "only a low fill light during daylight" ("Polish Adaptive Light Experience"). So the lamp is expected to run brightest in the dark.
 - **Effect:**
   - **Desk:** illuminances add. E_desk = E_lamp + E_room, so the 500 lx check, which is a total task illuminance in EN 12464-1, is met with less lamp light in a lit room. Desk evenness also improves: (min + E_room) / (avg + E_room).
   - **Diffuser:** room light adds about E_room·ρ/π to its luminance: ~100 cd/m² for 300–500 lx on a white diffuser, under 1% of ~12,000 cd/m². Diffuser evenness and the hotspot score are effectively unchanged.

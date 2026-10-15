@@ -10,14 +10,16 @@ function HeadLEDEngine() {
   'use strict';
   const SIGMA = 5.670374419e-8, G = 9.81;
   const TILT_K = 0.9781, DXF_X0 = 201.545, DXF_Y0 = 108.46;
-  const PKG_R = Math.hypot(2.8, 3.5) / 2; // 2.24 mm: farthest point of a 2835 LED body from its centre
+  // JB2835B package (Pro9 datasheet p.23): 3.58 x 2.97 mm over the terminals (body 3.30), 0.62 mm tall, optical model
+  // origin on the top face. PKG_R = farthest point of the package from its centre = 2.33 mm.
+  const PKG_W = 2.97, PKG_L = 3.58, PKG_H = 0.62;
+  const PKG_R = Math.hypot(PKG_W, PKG_L) / 2;
 
   // ---------------------------------------------------------------- config
   function defaults() {
     return {
       shape: { R: 69.55, sx: 1, sy: 1, cornerR: 33.64, bottomR: 482.38, bottomY: -35.47 },
       // camera = lens circle only. Centre = centre of the IMX219 board's 4 mounting holes in the DXF;
-      // the 8 mm diameter is an assumption (the DXF shows no lens) - confirm the real barrel size.
       // camera, from the Head STEP (context/step_extract): barrel Ø14 at the top (r 7), flush with the diffuser's outer
       // face, in a Ø16 diffuser hole (holeR 8): the 1 mm ring between them is open to the room. The camera board +
       // lens holder (25 x 24 mm, x 30..55, y -21.945..2.055) sits ON the LED board front, so LEDs can't go there
@@ -26,8 +28,9 @@ function HeadLEDEngine() {
         mod: { dx0: -12.4, dx1: 12.6, dy0: -8.645, dy1: 15.355 },
         // zone: 'lens' = only the lens circle is kept clear (default); 'dxf' = also the original keepout drawn in the DXF:
         // the corner region x >= 19.0, y <= 19.22 mm (relative to the lens: dx = -23.4, dy = +32.52, so it moves with the
-        // camera). Original clearance: LED centre >= 2.3 mm from the zone, i.e. body clearance 2.3 - PKG_R = 0.06 mm.
-        zone: 'module', boxDx: -23.4, boxDy: 32.52, boxMargin: 0.06 },
+        // camera). Original clearance: LED centre >= 2.3 mm from the zone; with the datasheet package (PKG_R 2.33) that is
+        // a body clearance of about 0, so 0 is used.
+        zone: 'module', boxDx: -23.4, boxDy: 32.52, boxMargin: 0 },
       // board screw holes (STEP). TL/TR carry the Head Front screw bosses (Ø8.6, 3 mm tall on the board front), so the
       // LED body must clear r 4.3; BL has only a screw head (holeClear).
       holes: [{ x: -36.658, y: 53.885, clear: 4.3 }, { x: 36.299, y: 53.885, clear: 4.3 }, { x: -46.808, y: -27.989 }],
@@ -40,15 +43,16 @@ function HeadLEDEngine() {
       evalInset: 0,         // the whole lit aperture is visible (STEP: no lip over the diffuser's front face)
       minPitch: 4.5,        // LED centre-to-centre clearance (2835 = 2.8 x 3.5 mm)
       gap: 17.9,            // board front -> diffuser inner face (STEP: 17.9 everywhere). Used by the heat calculation.
-      ledH: 0.8,            // JB2835 package height: light starts 0.8 mm above the board, so the optical height = gap - ledH
+      ledH: 0.62,           // JB2835B package height (Pro9 datasheet p.23; optical origin on the top face): optical height = gap - ledH
       m: 1,
       tau: 0.70,            // diffuser transmission (Notion Head page: diffuser must pass >= 70%; user: '70 percent diffusion')
       // LED + drive (Cree JB2835B 3V F-class Pro9, 90 CRI; flux per colour temperature from its datasheet p.5, see CCT below)
-      count: 60, perString: 5, stringMode: 'rows', duty: [], minDuty: 0.3, dimJoint: false, current: 25, refI: 65, vf: 2.70, rjs: 5,
+      count: 60, perString: 5, stringMode: 'rows', duty: [], minDuty: 0.3, dimJoint: false, current: 25, refI: 65, vf: 2.70, rjs: 5,   // current 25 mA [Mine]: 60 x 2.70 V x 25 mA = 4.05 W, the brief's 4 W reference; rjs = R_j-s (junction to solder point) [Cree p.4]
       cct: 3000,            // colour temperature (K): picks the datasheet flux and its temperature slope
       fluxCase: 'typ',      // 'typ' = datasheet typical; 'tol' = typical - 7 % (datasheet flux measurement tolerance; old program default)
       refFlux: 36.2, tempSlope: 0.00115,   // used only if cct is not in the table (custom part)
-      vddLed: 13.37, tlcKnee: 0.4,
+      vddLed: 13.37,        // 0.6 V x (1 + 100k/4.7k): divider from Head_Board.pdf; the LMR51420 0.6 V reference is datasheet knowledge (not in the context files)
+      tlcKnee: 0.4,         // [Mine] assumed regulation headroom for the TLC59711
       // thermal: Ben's Notion "LED array heat calcs" network (front path only) + Hui & Qin 2009
       ambient: 25, thermalCase: 'worst', Nu: 1, hOut: 2, kh: 0.85,
       emissBoard: 0.85, emissDiff: 0.90, diffT: 1.0, diffK: 0.2,
@@ -65,7 +69,7 @@ function HeadLEDEngine() {
       // PLA softens near its glass transition (about 55-60 C), so parts touching the board are checked against 55 C.
       kPla: 0.13, epsShell: 0.9, plaMax: 55,
       mapRes: 2.5,
-      cadV: 1,              // geometry version: 1 = measured from the Head STEP (context/step_extract)
+      cadV: 2,              // geometry version: 1 = measured from the Head STEP; 2 = + datasheet package size/height (audit)
       targetLm: 300, targetUniformPct: 65, maxBoard: 40, powerBudget: 4,
       // desk target (Ben's Notion 'LED research doc + sim', citing EN 12464-1): >= 500 lx over a 40 cm circle at 40 cm
       taskZ: 400, taskD: 400, targetLux: 500, deskLimit: true,
@@ -234,7 +238,10 @@ function HeadLEDEngine() {
 
   // ---------------------------------------------------------------- optics
   // Irradiance per unit LED flux (1/mm^2) on each diffuser cell. Lambertian (m = 1) / cos^m point source:
-  // E = (m+1) h^(m+1) / (2 pi r^(m+3))  (Moreno et al. 2006, Eq. 3; same as Ben's Notion derivation for m = 1).
+  // E = (m+1) h^(m+1) / (2 pi r^(m+3)): a cos^m intensity (Moreno et al. 2006, Eq. 1; m from their Eq. 2 and the 120 deg
+  // FWHM) landing on a plane, x cos(theta) incidence, normalised to unit flux [Textbook]. For m = 1 this is
+  // E = h^2 / (pi r^4), exactly Ben's Notion derivation. (Moreno's own Eq. 3 is written z^m / R^(m+2), i.e. with m
+  // counting the incidence cosine too, so their m = 2 is this m = 1.)
   // Light reaching the head walls is absorbed (no reflection model); light on the lens or blocked by its barrel is lost.
   function ledContrib(geo, cfg, x, y, outD) {
     outD.fill(0);
@@ -443,7 +450,7 @@ function HeadLEDEngine() {
   }
   function led(cfg, Tj) {
     const I = cfg.current / 1000, Pel = cfg.vf * I, ref = ledRef(cfg);
-    const derate = Math.max(0.2, 1 - ref.slope * ((Tj == null ? 25 : Tj) - 25));
+    const derate = Math.max(0.2, 1 - ref.slope * ((Tj == null ? 25 : Tj) - 25));   // floor 0.2 [Mine]: numerical guard only
     const flux = ref.flux * (cfg.current / cfg.refI) * derate; // linear in current; derate = Hui & Qin 2009 Eq. 2
     return { I, Pel, flux };
   }
@@ -492,7 +499,7 @@ function HeadLEDEngine() {
 
 
   // ---------------------------------------------------------------- where every lumen goes (light budget)
-  // Per unit LED flux, Lambertian/cos^m (Moreno Eq. 3) on the diffuser plane at the optical height. Categories:
+  // Per unit LED flux, the same cos^m-on-a-plane spot as ledContrib, on the diffuser plane at the optical height. Categories:
   //   diffuser  - lands on the lit aperture (out through the diffuser = x tau; the rest is absorbed/scattered back)
   //   annulus   - lands in the open ring between the camera barrel (r) and the diffuser hole (holeR): leaves the head
   //               as direct, undiffused light (STEP: open to the room)
@@ -554,10 +561,12 @@ function HeadLEDEngine() {
   }
   // STEP areas (mm2) and the board mounts
   const CAD = {
-    backIn: 41036, backOut: 36467, frontIn: 9186, bossH: 5,
-    bosses: [{ x: -37.92, y: 54.95, a: 54.25 }, { x: 37.63, y: 55.02, a: 56.0 }, { x: 47.54, y: -28.57, a: 53.0 }, { x: -48.23, y: -28.52, a: 52.48 },
-      { x: -36.658, y: 53.885, a: 62.15 }, { x: 36.299, y: 53.885, a: 62.15 }],
-    padA: 9.8,   // JB2835 footprint (mm2): assumes the copper pad spreads the LED heat over it before the dielectric
+    backIn: 41036, backOut: 36467, frontIn: 9186,
+    // bosses touching the board: 4 Head Back bosses (z -10..-5, L 5 mm) and 2 Head Front bosses (z 0..3, L 3 mm). The front
+    // ones end in Head Front, which is butt-joined to Head Back (1,259 mm2, STEP); both shells are lumped into one node [Mine].
+    bosses: [{ x: -37.92, y: 54.95, a: 54.25, L: 5 }, { x: 37.63, y: 55.02, a: 56.0, L: 5 }, { x: 47.54, y: -28.57, a: 53.0, L: 5 }, { x: -48.23, y: -28.52, a: 52.48, L: 5 },
+      { x: -36.658, y: 53.885, a: 62.13, L: 3 }, { x: 36.299, y: 53.885, a: 62.13, L: 3 }],
+    padA: 6.47,  // recommended PCB footprint, Pro9 p.23: 2.26 x 2.08 + 0.85 x 2.08 mm (heat assumed to cross the dielectric over it)
   };
   // Model: a 2-D grid over the board (mapRes mm). Each cell exchanges heat with its 4 neighbours through the board
   // (in-plane conductance = k t of the base + copper, Fourier's law), and loses heat
@@ -578,7 +587,8 @@ function HeadLEDEngine() {
     const nx = Math.ceil((x1 - x0) / res), ny = Math.ceil((y1 - y0) / res), id = new Int32Array(nx * ny).fill(-1), cx = [], cy = [];
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const x = x0 + (i + 0.5) * res, y = y0 + (j + 0.5) * res; if (pointInPoly(poly, x, y)) { id[j * nx + i] = cx.length; cx.push(x); cy.push(y); } }
     const N = cx.length, areaMm2 = polyArea(poly), Ab = areaMm2 * 1e-6, Ac = Ab / N;   // cell area scaled so the cells sum to the board area
-    const fr4 = pc.type === 'fr4', kt = fr4 ? 0.3 * 1.6e-3 + pc.kCu * pc.tCu * 1e-3 : pc.kBase * pc.tBase * 1e-3 + pc.kCu * pc.tCu * 1e-3;
+    // FR4 comparison: 1.6 mm, in-plane k 0.8 W/mK (typical laminate value, ASSUMED) + the copper layer
+    const fr4 = pc.type === 'fr4', kt = fr4 ? 0.8 * 1.6e-3 + pc.kCu * pc.tCu * 1e-3 : pc.kBase * pc.tBase * 1e-3 + pc.kCu * pc.tCu * 1e-3;
     const cellOf = (x, y) => { const i = Math.floor((x - x0) / res), j = Math.floor((y - y0) / res); return i < 0 || j < 0 || i >= nx || j >= ny ? -1 : id[j * nx + i]; };
     const nearest = (x, y) => { let c = cellOf(x, y); if (c >= 0) return c; let b = 0, bd = Infinity; for (let k = 0; k < N; k++) { const d = (cx[k] - x) ** 2 + (cy[k] - y) ** 2; if (d < bd) { bd = d; b = k; } } return b; };
     // heat sources
@@ -591,12 +601,12 @@ function HeadLEDEngine() {
     const Qtot = Qled + (cfg.elecW || 0);
     // back cavity depth per cell (m), boss contacts
     const Lb = new Float64Array(N); for (let k = 0; k < N; k++) Lb[k] = Math.max(5, backGapAt(cx[k], cy[k])) * 1e-3;
-    const gBoss = new Float64Array(N); if (!opt.noBack) for (const b of CAD.bosses) gBoss[nearest(b.x, b.y)] += cfg.kPla * b.a * 1e-6 / (CAD.bossH * 1e-3);
+    const gBoss = new Float64Array(N); if (!opt.noBack) for (const b of CAD.bosses) gBoss[nearest(b.x, b.y)] += cfg.kPla * b.a * 1e-6 / (b.L * 1e-3);
     // shell: inner node -> wall -> outside
     const Aout = CAD.backOut * 1e-6, Ain = CAD.backIn * 1e-6, Rwall = 3e-3 / (cfg.kPla * Ain);
     const T = new Float64Array(N + 1).fill(Ta + 30); // last entry = Head Back inner surface
     const gF = new Float64Array(N), gB = new Float64Array(N);
-    let th = null, Qf = Qtot * 0.8, GBA = 0, iters = 0;
+    let th = null, Qf = Qtot * 0.8, GBA = 0, iters = 0, hOutLast = 0;
     const nb = []; // neighbour lists
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = id[j * nx + i]; if (k < 0) continue; const l = []; if (i + 1 < nx && id[j * nx + i + 1] >= 0) l.push(id[j * nx + i + 1]); if (i > 0 && id[j * nx + i - 1] >= 0) l.push(id[j * nx + i - 1]); if (j + 1 < ny && id[(j + 1) * nx + i] >= 0) l.push(id[(j + 1) * nx + i]); if (j > 0 && id[(j - 1) * nx + i] >= 0) l.push(id[(j - 1) * nx + i]); nb[k] = l; }
     if (opt.T0 && opt.T0.length === N + 1) T.set(opt.T0);   // warm start from a previous solution
@@ -609,9 +619,10 @@ function HeadLEDEngine() {
       const Rpp = (th.Rint + th.Rpc + th.Rext) * Ab;        // m2K/W, Ben's 1-D front path per unit area
       const TB = T[N];
       let Tsum = 0; for (let k = 0; k < N; k++) Tsum += T[k];
-      const Tm = Tsum / N, ToutS = Ta + (TB - Ta) * 0.5;
+      const Tm = Tsum / N, ToutS = Ta + (TB - Ta) * 0.5;   // [Mine] outer-surface guess only for linearising its radiation
       const hRadOut = cfg.epsShell * SIGMA * (ToutS * ToutS + Ta * Ta) * (ToutS + Ta);
-      GBA = opt.noBack ? 0 : 1 / (Rwall + 1 / ((cs.h + hRadOut) * Aout));
+      hOutLast = cs.h + hRadOut;
+      GBA = opt.noBack ? 0 : 1 / (Rwall + 1 / (hOutLast * Aout));
       for (let k = 0; k < N; k++) {
         gF[k] = Ac / Rpp;
         if (opt.noBack) { gB[k] = 0; continue; }
@@ -664,18 +675,21 @@ function HeadLEDEngine() {
     }
     // results
     let Tmax = -Infinity, Tmin = Infinity, Tsum = 0, Qb = 0, Qm = 0, kMax = 0, TdMax = -Infinity, Tboss = -Infinity;
-    const Rext = th.Rext * Ab;
+    const Rext = th.Rext * Ab, Tdo = new Float64Array(N);
     for (let k = 0; k < N; k++) {
       if (T[k] > Tmax) { Tmax = T[k]; kMax = k; } Tmin = Math.min(Tmin, T[k]); Tsum += T[k];
       Qb += gB[k] * (T[k] - T[N]); Qm += gBoss[k] * (T[k] - T[N]);
-      TdMax = Math.max(TdMax, Ta + gF[k] * (T[k] - Ta) / Ac * Rext);   // diffuser outer surface over this cell
+      Tdo[k] = Ta + gF[k] * (T[k] - Ta) / Ac * Rext;   // diffuser outer surface over this cell (Ben's outside resistance)
+      TdMax = Math.max(TdMax, Tdo[k]);
       if (gBoss[k] > 0) Tboss = Math.max(Tboss, T[k]);
     }
     const Rdiel = pc.tDiel * 1e-3 / (pc.kDiel * CAD.padA * 1e-6);
     const Tj = leds.map((p, i) => T[ledCell[i]] + cfg.kh * Pd * wts[i] * (cfg.rjs + (fr4 ? 0 : Rdiel)));
     const C = v => v - 273.15;
     return {
-      cells: { x: Float32Array.from(cx), y: Float32Array.from(cy), res, T: Float64Array.from(T.subarray(0, N), C) },
+      cells: { x: Float32Array.from(cx), y: Float32Array.from(cy), res, T: Float64Array.from(T.subarray(0, N), C), Tdo: Float64Array.from(Tdo, C) },
+      // Head Back outer surface (lumped): heat through the shell node -> outside resistance
+      TshellOut: opt.noBack ? NaN : C(Ta + GBA * (T[N] - Ta) / (hOutLast * Aout)),
       Tmax: C(Tmax), Tmin: C(Tmin), Tavg: C(Tsum / N), hot: { x: cx[kMax], y: cy[kMax] },
       Tj: Tj.map(C), TjMax: Tj.length ? C(Math.max(...Tj)) : NaN, TshellIn: C(T[N]), TdOutMax: C(TdMax), Tboss: Tboss > -Infinity ? C(Tboss) : NaN,
       Q: { total: Qtot, led: Qled, elec: cfg.elecW || 0, front: Qf, back: Qb, mounts: Qm }, case: kase, Rdiel, kt, ben: th, iters, Tk: Float64Array.from(T),
@@ -721,7 +735,7 @@ function HeadLEDEngine() {
     }
     add('LED power', s.P <= cfg.powerBudget * 1.001, s.P.toFixed(2) + ' W', '≤ ' + cfg.powerBudget + ' W', 'Brief / heat-calc doc (4 W reference)');
     add('Placement', s.bad === 0, s.bad + ' LED(s) break a limit', '0', 'DXF outline, lens, screw holes, 2835 body size');
-    add('Driver current', d.currentOk, cfg.current.toFixed(1) + ' mA', '≤ ' + d.tlcMax.toFixed(1) + ' mA', 'TLC59711: 41 × 1.21 V / R82 (820 Ω), Head_Board.pdf');
+    add('Driver current', d.currentOk, cfg.current.toFixed(1) + ' mA', '≤ ' + d.tlcMax.toFixed(1) + ' mA', 'R82 = 820 Ω (Head_Board.pdf); 41 × 1.21 V / R from the TLC59711 datasheet (not in the context files)');
     add('LED current rating', cfg.current <= LED_LIMITS.maxI, cfg.current.toFixed(1) + ' mA', '≤ ' + LED_LIMITS.maxI + ' mA', 'Cree Pro9 datasheet p.4');
     add('Ambient rating', cfg.ambient >= LED_LIMITS.opMin && cfg.ambient <= LED_LIMITS.opMax, cfg.ambient + ' °C', LED_LIMITS.opMin + ' to ' + LED_LIMITS.opMax + ' °C', 'Cree Pro9 datasheet p.4');
     add('Supply headroom', d.headOk, d.headroom.toFixed(2) + ' V', '≥ ' + cfg.tlcKnee + ' V', 'LMR51420 divider (13.37 V) − 5 × Vf; TLC59711 regulation');
@@ -1033,7 +1047,7 @@ function HeadLEDEngine() {
     if (K.on && K.zone === 'module' && K.mod) { const z = modPoly(K); for (let i = 0; i < 4; i++) { const a = z[i], b = z[(i + 1) % 4]; add(0, 'LINE', 8, 'CAMERA_MODULE', 10, a[0].toFixed(4), 20, a[1].toFixed(4), 30, 0, 11, b[0].toFixed(4), 21, b[1].toFixed(4), 31, 0); } }
     if (K.on && K.zone === 'dxf') { const z = zonePoly(K, poly); for (let i = 0; i < z.length; i++) { const a = z[i], b = z[(i + 1) % z.length]; add(0, 'LINE', 8, 'CAMERA_KEEPOUT', 10, a[0].toFixed(4), 20, a[1].toFixed(4), 30, 0, 11, b[0].toFixed(4), 21, b[1].toFixed(4), 31, 0); } }
     leds.forEach((p, i) => {
-      const w = 1.4, h = 1.75; // 2835 body 2.8 x 3.5 mm
+      const w = PKG_W / 2, h = PKG_L / 2; // JB2835B package, Pro9 p.23
       const c = [[p.x - w, p.y - h], [p.x + w, p.y - h], [p.x + w, p.y + h], [p.x - w, p.y + h]];
       for (let k = 0; k < 4; k++) add(0, 'LINE', 8, 'LED_BODY', 10, c[k][0].toFixed(4), 20, c[k][1].toFixed(4), 30, 0, 11, c[(k + 1) % 4][0].toFixed(4), 21, c[(k + 1) % 4][1].toFixed(4), 31, 0);
       add(0, 'POINT', 8, 'LED_CENTRE', 10, p.x.toFixed(4), 20, p.y.toFixed(4), 30, 0);
@@ -1049,7 +1063,7 @@ function HeadLEDEngine() {
   }
 
   return {
-    defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
+    PKG_W, PKG_L, PKG_H, defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
     thermal, BEN, objective, rng, poisson, uniformRandom, hex, cvt, fillBestCandidate, optimize, autoDesign,
     assignStrings, balanceStrings, neighbours, taskLight, deskMap, deskModel, deskLux, toDxfDrawn, dxfExport, segHitsCircle, setCam, geoKey, PKG_R, TILT_K, DXF_X0, DXF_Y0,
   };

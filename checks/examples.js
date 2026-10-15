@@ -11,7 +11,7 @@ function check(name, source, expected, got, ok) {
 const f = (v, d = 2) => Number(v).toFixed(d);
 const cfg = E.defaults(), placer = E.buildPlacer(cfg);
 
-// 1. Light from one LED (Ben's Notion derivation / Moreno 2006 Eq. 3 with m = 1): E = Φ h² / (π (h² + r²)²)
+// 1. Light from one LED (Ben's Notion derivation; Moreno 2006 Eq. 1 cos^m source × incidence cosine, m = 1): E = Φ h² / (π (h² + r²)²)
 {
   const c = E.clone(cfg); c.keep.on = false; const g = E.buildGeo(c, 0.5), out = new Float32Array(g.nD);
   E.ledContrib(g, c, 0, 0, out);
@@ -19,7 +19,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const h = c.gap - c.ledH, at = (x, y) =>   // optical height: LED top (0.8 mm above the board) to the diffuser
    { let best = 0, bd = Infinity; for (let k = 0; k < g.nD; k++) { const d = Math.hypot(g.dx[k] - x, g.dy[k] - y); if (d < bd) { bd = d; best = k; } } return { E: out[best], r: Math.hypot(g.dx[best], g.dy[best]) }; };
   const a = at(0, 0), b = at(h, 0), fa = h * h / (Math.PI * (h * h + a.r * a.r) ** 2), fb = h * h / (Math.PI * (h * h + b.r * b.r) ** 2);
-  check('1. Single-LED light matches the closed-form formula', "Ben's 'LED research doc + sim'; Moreno 2006 Eq. 3",
+  check('1. Single-LED light matches the closed-form formula', "Ben's 'LED research doc + sim'; Moreno 2006 Eq. 1 + incidence cosine",
     `directly above: ${f(fa * 1e3, 4)} ‰/mm²; one gap sideways: ${f(fb * 1e3, 4)} ‰/mm²`, `${f(a.E * 1e3, 4)} and ${f(b.E * 1e3, 4)}`,
     Math.abs(a.E / fa - 1) < 1e-6 && Math.abs(b.E / fb - 1) < 1e-6);
 }
@@ -33,7 +33,8 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
     `≥ ${f(bound * 100, 1)}% lands on the diffuser (nearest wall ≥ 40 mm away), never > 100%`, `${f(s * 100, 2)}%`, s >= bound - 0.005 && s <= 1.0001);
 }
 
-// 3. Moreno's maximally flat spacing for a triangular (hex) array, 7x7, m = 50: d0 = 0.192 z
+// 3. Moreno's maximally flat spacing for a triangular (hex) array, 7x7, m = 50: d0 = 0.192 z. (Moreno's Eq. 3 counts the
+//    incidence cosine inside m, so at m = 50 our kernel equals theirs at m = 51: hence 0.191 vs 0.192, within the tolerance.)
 {
   const m = 50, Ef = (x, pts) => pts.reduce((a, [px, py]) => a + 1 / (((x - px) ** 2 + py * py + 1) ** ((m + 3) / 2)), 0);
   const tri = D => { const P = []; for (let j = 1; j <= 7; j++) { const Nj = 7 - (j + 1) % 2; for (let i = 1; i <= Nj; i++) P.push([(Nj + 1 - 2 * i) * D / 2, (7 + 1 - 2 * j) * Math.sqrt(3) / 4 * D]); } return P; };

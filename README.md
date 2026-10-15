@@ -43,7 +43,7 @@ first load).
 
 | Part | Source |
 |---|---|
-| LED light on the diffuser: E = Φ(m+1)h^(m+1)/(2π r^(m+3)), m = 1 | Moreno et al. 2006 Eq. 3; Ben's Notion "LED research doc + sim" (same formula) |
+| LED light on the diffuser: E = Φ(m+1)h^(m+1)/(2π r^(m+3)), m = 1 | Moreno et al. 2006 Eq. 1 (cos^m) × incidence cosine; Ben's Notion "LED research doc + sim" (same formula) |
 | Diffuser = transmission loss τ (≥ 0.70) | Ben's derivation; Notion Head page |
 | Desk light: each diffuser patch as a Lambertian source; 500 lx over a 40 cm circle at 40 cm | Ben's derivation and targets (EN 12464-1) |
 | Head outline, camera position | DXF (12° tilt removed); confirmed by the Head STEP to 0.05 mm |
@@ -55,7 +55,7 @@ first load).
 | String dimming (incl. joint with placement) | Moreno 2006 (dimmed centre LED, solved with spacing); Yang 2009 (edge levels) |
 | Board temperature map | Ben's Notion "LED array heat calcs" network (front path, reproduced exactly: 247 / 139.3 °C) + metal-core board conduction + back cavity + PLA bosses, geometry from the Head STEP, electronics power from your table |
 | Geometry: gap 17.9 mm, lit aperture, camera barrel/ring/board, bosses, meshes | Head STEP, measured in `context/step_extract/` |
-| Light budget (every lumen) | Moreno Eq. 3 over the STEP geometry |
+| Light budget (every lumen) | the same kernel over the STEP geometry |
 | LED temperature, heat share, efficacy vs temperature | Hui & Qin 2009 (Eqs. 2, 3, 5a) |
 | LED flux per colour temperature, its temperature slope, ±7% tolerance, T_j / current / ambient ratings | Cree JB2835B F-class Pro9 datasheet pp.4–5 |
 | Driver current limit, supply headroom | Head_Board.pdf (R82 = 820 Ω, LMR51420 100k/4.7k) |
@@ -74,6 +74,7 @@ maintenance, crowding, current sweep, checklist, modes) is justified one by one 
 ## Files
 
 - `index.html`, `app.js`: UI.
+- `evidence.js`: every model value with its source (shown in step 5 → Evidence).
 - `view3d.js`: 3D view (three.js): diagram compare, heat-coloured board, realistic nightstand scene.
 - `assets/cad/*.stl`: Head STEP meshes (copied from `context/step_extract/meshes`), used by the 3D view at the CAD gap.
 - `engine.js`: geometry, light model, desk light, thermal, generators, optimizer, strings, exports. It runs in the

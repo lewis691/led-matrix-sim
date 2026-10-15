@@ -1,0 +1,16 @@
+gap 10 mm, default                           evenness 81%  CV 10.8%  darkest at (50, -29): 2.1 mm from wall, 13.1 mm from lens  | evenness ignoring cells < gap from wall 82%
+gap 15 mm, default                           evenness 83%  CV 5.5%  darkest at (-63, -17): 2.2 mm from wall, 101.3 mm from lens  | evenness ignoring cells < gap from wall 88%
+gap 21 mm, default                           evenness 54%  CV 18.9%  darkest at (-66, -11): 2.0 mm from wall, 104.2 mm from lens  | evenness ignoring cells < gap from wall 79%
+21 mm, desk limit off                        evenness 94%  CV 3.5%  darkest at (45, -8): 21.8 mm from wall, 2.2 mm from lens  | evenness ignoring cells < gap from wall 95%
+21 mm, no camera                             evenness 59%  CV 16.1%  darkest at (-54, 40): 2.3 mm from wall  | evenness ignoring cells < gap from wall 89%
+21 mm, LEDs allowed right at the wall        evenness 55%  CV 18.9%  darkest at (50, -29): 2.1 mm from wall, 13.1 mm from lens  | evenness ignoring cells < gap from wall 76%
+21 mm, 5 mm rim hidden instead of 2          evenness 65%  CV 13.5%  darkest at (-33, 55): 5.3 mm from wall, 97.8 mm from lens  | evenness ignoring cells < gap from wall 88%
+21 mm, 90 LEDs                               evenness 93%  CV 3.6%  darkest at (48, -11): 17.6 mm from wall, 2.3 mm from lens  | evenness ignoring cells < gap from wall 95%
+
+Desk light of the even (limit-off) layout, and current needed with the limit on:
+  10 mm, limit off: evenness 81%, light reaching diffuser 80%, light out 432 lm, desk min 544 lx
+  21 mm, limit off: evenness 94%, light reaching diffuser 61%, light out 329 lm, desk min 414 lx
+  21 mm, 27 mA, limit on: evenness 72%, desk min 500 lx, power 4.37 W, board 95 °C worst case
+  21 mm, 29 mA, limit on: evenness 86%, desk min 500 lx, power 4.70 W, board 99 °C worst case
+  21 mm, 31 mA, limit on: evenness 94%, desk min 506 lx, power 5.02 W, board 103 °C worst case
+  21 mm, 33 mA, limit on: evenness 94%, desk min 536 lx, power 5.35 W, board 107 °C worst case

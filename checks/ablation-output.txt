@@ -1,0 +1,16 @@
+RECORD ONLY: ablation run on 14 Oct 2026 that led to removing the light-utilisation (LU) and heat-clustering (HC) score terms and camera auto-move.
+The script that produced it used model parts that have since been removed, so it no longer runs.
+Result: no term changed evenness or light beyond the optimizer's own run-to-run spread.
+
+6 runs per row (3 starting layouts × 2 seeds), 6000 iterations, 10 mm gap, absorbing walls, 25 mA
+
+score terms used                  | evenness (range)  |   CV   | light out (range)     | 2-D peak*
+all four (current default)        |  65.7% (59–69) |  10.3% |   470 lm (466–474) | 49.2 °C
+without LU (light utilisation)    |  69.5% (67–75) |  10.8% |   468 lm (465–469) | 49.2 °C
+without HC (heat clustering)      |  70.0% (65–74) |  10.1% |   474 lm (472–476) | 48.9 °C
+without LU and HC (CV + evenness) |  67.9% (63–71) |  10.4% |   468 lm (465–472) | 49.4 °C
+
+CV + evenness, camera fixed       |  67.9% (63–71) |  10.4% |   468 lm (465–472) | 49.4 °C
+CV + evenness, camera may move ±15|  69.3% (62–73) |  10.3% |   468 lm (465–471) | 49.3 °C | camera moved 7.5 mm avg
+
+* 2-D board peak uses the unsourced board-spreading model, shown only because HC targets it.

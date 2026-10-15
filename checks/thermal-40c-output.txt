@@ -1,0 +1,4 @@
+10 mm, worst: R_total 18.2 K/W (gap 7.8, diffuser 0.42, outside 10.0) | 25 mA: 4.05 W -> board 88 C | 40 C board allows 5.1 mA = 0.82 W -> 101 lm out, desk min 128 lx
+10 mm, best : R_total 9.1 K/W (gap 6.0, diffuser 0.42, outside 2.7) | 25 mA: 4.05 W -> board 56 C | 40 C board allows 11.6 mA = 1.88 W -> 232 lm out, desk min 292 lx
+21 mm, worst: R_total 19.3 K/W (gap 8.9, diffuser 0.42, outside 10.0) | 25 mA: 4.05 W -> board 91 C | 40 C board allows 4.6 mA = 0.75 W -> 77 lm out, desk min 97 lx
+21 mm, best : R_total 11.4 K/W (gap 8.2, diffuser 0.42, outside 2.7) | 25 mA: 4.05 W -> board 64 C | 40 C board allows 9.0 mA = 1.45 W -> 149 lm out, desk min 187 lx

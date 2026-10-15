@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Head LED Placement Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 22a13 13 0 0 1 26 0v4H3z' fill='%23222b38'/%3E%3Cg fill='%23ffc857'%3E%3Ccircle cx='10' cy='18' r='2'/%3E%3Ccircle cx='16' cy='14' r='2'/%3E%3Ccircle cx='22' cy='18' r='2'/%3E%3Ccircle cx='16' cy='22' r='2'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f3f4f6; --panel:#ffffff; --ink:#16202c; --muted:#5b6676; --line:#dfe3e8; --accent:#d9480f; --accent-ink:#fff; --accent-soft:#fff1e8;
+  --good:#1b7f3b; --bad:#c92a2a; --warn:#b26a00; --chip:#eef1f5; --canvas:#10151d; --shadow:0 1px 2px rgba(16,21,29,.06),0 4px 14px rgba(16,21,29,.06);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size:13.5px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1117; --panel:#151b24; --ink:#e6ebf2; --muted:#97a3b4; --line:#263040; --accent:#ff8a3d; --accent-ink:#1a1006; --accent-soft:#2a1d12;
+  --good:#51cf66; --bad:#ff6b6b; --warn:#fcc419; --chip:#1d2531; --canvas:#0a0e14; --shadow:none; } }
+:root[data-theme="dark"]{ --bg:#0d1117; --panel:#151b24; --ink:#e6ebf2; --muted:#97a3b4; --line:#263040; --accent:#ff8a3d; --accent-ink:#1a1006; --accent-soft:#2a1d12;
+  --good:#51cf66; --bad:#ff6b6b; --warn:#fcc419; --chip:#1d2531; --canvas:#0a0e14; --shadow:none; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--muted)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.big{padding:9px 14px;font-size:14px}
+button.on{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+button:disabled{opacity:.45;cursor:default}
+select,input[type=number],input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%;min-width:0}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chk-t{width:100%;border-collapse:collapse;font-size:12px}.chk-t th,.chk-t td{text-align:left;padding:3px 4px;border-bottom:1px solid rgba(160,180,210,.12);vertical-align:top}.chk-t .src{color:var(--muted,#8b96a8);font-size:11px}
+.bad{color:var(--bad)!important}.good{color:var(--good)!important}.warn{color:var(--warn)!important}
+
+/* header + stepper */
+header{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:15px;margin:0}
+header .sub{color:var(--muted);font-size:12px}
+.spacer{flex:1}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+nav.steps{display:flex;gap:4px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav.steps button{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:7px 12px;border-radius:999px;color:var(--muted)}
+nav.steps button .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;font-size:12px;font-weight:700}
+nav.steps button.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+nav.steps button.active .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+nav.steps .arrow{color:var(--line);align-self:center}
+
+/* main layout */
+.main{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;padding:14px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.step{display:none;padding:14px 16px}
+.step.active{display:block}
+.step h2{font-size:17px;margin:0 0 4px}
+.step .lead{color:var(--muted);margin:0 0 14px;line-height:1.45}
+.block{border-top:1px solid var(--line);padding:12px 0 4px;margin-top:4px}
+.block:first-of-type{border-top:0;padding-top:0}
+.block h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:650;display:flex;gap:5px;align-items:center}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted);margin-bottom:8px}
+label.f .lbl{display:flex;align-items:center;gap:4px;color:var(--ink)}
+label.chk{display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px}
+.hint{color:var(--muted);font-size:12px;line-height:1.45;margin:6px 0}
+details.adv{margin-top:10px;border:1px dashed var(--line);border-radius:8px;padding:6px 10px}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:12.5px;padding:2px 0}
+details.adv[open] summary{margin-bottom:8px}
+.next{margin-top:16px;display:flex;justify-content:space-between;gap:8px}
+.readout{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:12.5px;margin-top:6px}
+.readout span:nth-child(odd){color:var(--muted);display:flex;align-items:center;gap:4px}
+.readout span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.prog{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.prog > div{height:100%;width:0;background:var(--accent);transition:width .15s}
+.big-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.big-actions button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;white-space:normal;padding:9px 11px}
+.big-actions button small{font-weight:400;opacity:.8;font-size:11.5px}
+
+/* help tips */
+.q{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--chip);border:1px solid var(--line);color:var(--muted);font-size:10px;font-weight:700;cursor:help;flex:0 0 auto;text-transform:none;letter-spacing:0}
+#tip{position:fixed;z-index:50;max-width:290px;background:var(--ink);color:var(--bg);padding:8px 10px;border-radius:8px;font-size:12.5px;line-height:1.45;pointer-events:none;display:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+
+/* status strip */
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:8px;margin-bottom:10px}
+@media (max-width:1100px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px 8px 14px;cursor:pointer;position:relative;overflow:hidden;text-align:left}
+.tile:hover{border-color:var(--muted)}
+.tile .k{font-size:11.5px;color:var(--muted);display:flex;gap:4px;align-items:center}
+.tile .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile .v small{font-size:12px;color:var(--muted);font-weight:500;margin-left:2px}
+.tile .t{font-size:11.5px;color:var(--muted)}
+.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.tile.ok::before{background:var(--good)} .tile.no::before{background:var(--bad)} .tile.mid::before{background:var(--warn)}
+.issues{display:flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;cursor:help;min-width:90px;text-align:center}
+.issues.has{border-color:var(--bad);color:var(--bad);font-weight:600}
+
+/* canvas */
+.bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;padding:6px 10px}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button.on{outline:0;background:var(--accent);color:var(--accent-ink)}
+.canvaswrap{position:relative;background:var(--canvas)}
+#v3d{position:absolute;inset:0;z-index:5;background:#0b0f15;display:flex;flex-direction:column}#v3dHost{flex:1;min-height:280px;display:grid;gap:2px}#v3d{overflow:auto}.v3bar label{display:inline-flex;align-items:center;gap:4px;margin:0}.v3bar select{width:auto;max-width:210px}.v3bar input[type=range]{width:70px}#v3dHost canvas{cursor:grab;display:block}
+.v3panel{position:relative;min-width:0;min-height:0;overflow:hidden}.v3lab{position:absolute;left:6px;top:6px;font-size:11.5px;color:#dfe6ee;background:rgba(10,14,20,.75);padding:4px 7px;border-radius:6px;line-height:1.4;pointer-events:none}
+.v3sep{width:1px;height:16px;background:rgba(160,180,210,.3)}.v3grad{display:inline-block;width:90px;height:9px;border-radius:2px;vertical-align:middle;margin-right:4px}.v3grad.div{background:linear-gradient(90deg,#053061,#4393c3,#f7f7f7,#d6604d,#67001f)}.v3grad.seq{background:linear-gradient(90deg,#000004,#280b54,#65156e,#bc3754,#f98e09,#fcffa4)}
+.v3bar{position:relative;margin:6px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:#cfd6e0;background:rgba(10,14,20,.78);padding:6px 8px;border-radius:8px}
+.v3bar select,.v3bar input[type=number]{font-size:12px}.v3bar button{font-size:12px;padding:3px 7px}
+.v3info{position:relative;margin:6px;font-size:12px;color:#cfd6e0;background:rgba(10,14,20,.78);padding:6px 9px;border-radius:8px;line-height:1.45}
+#btn3d.on{background:var(--accent,#22b8cf);color:#071016}
+canvas#view{display:block;width:100%;touch-action:none;cursor:crosshair}
+.legend{position:absolute;left:10px;bottom:10px;color:#cfd6e0;font-size:11.5px;background:rgba(10,14,20,.75);padding:6px 9px;border-radius:7px}
+.legend canvas{display:block;width:190px;height:9px;margin:4px 0}
+.status{position:absolute;right:10px;top:10px;color:#cfd6e0;font-size:12px;background:rgba(10,14,20,.75);padding:5px 9px;border-radius:7px;max-width:55%}
+.hintbar{position:absolute;left:10px;top:10px;color:#cfd6e0;font-size:12px;background:rgba(10,14,20,.75);padding:5px 9px;border-radius:7px;max-width:40%}
+.foot{display:flex;gap:12px;align-items:center;padding:8px 10px;color:var(--muted);font-size:12.5px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.foot input{width:78px}
+
+/* dimming */
+.duty{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px}
+.duty label{display:grid;grid-template-columns:auto 1fr 36px;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.duty i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.duty b{font-weight:600;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+
+/* compare */
+.cmp{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
+.snap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.snap img,.snap .noimg{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--canvas)}
+.snap .noimg{display:grid;place-items:center;color:#8a96a8;font-size:12px}
+.snap .body{padding:8px 10px}
+.snap .name{font-weight:650;margin-bottom:2px}
+.snap .desc{color:var(--muted);font-size:11.5px;margin-bottom:6px}
+.snap .m{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px}
+.snap .m span:nth-child(odd){color:var(--muted)}
+.snap .m span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums}
+.snap .m .best{color:var(--good);font-weight:700}
+.snap .m .best::after{content:" ★"}
+.snap.current{border-style:dashed}
+.snap .acts{display:flex;gap:6px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{padding:4px 5px;border-bottom:1px solid var(--line);text-align:right;font-size:12px}
+td:first-child,th:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+
+/* tour */
+#tourHole{position:fixed;z-index:61;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,11,16,.68);outline:2.5px solid var(--accent);outline-offset:2px;pointer-events:none;transition:all .2s}
+#tourBlock{position:fixed;inset:0;z-index:60}
+#tourCard{position:fixed;z-index:62;width:340px;max-width:calc(100vw - 32px);background:var(--panel);color:var(--ink);border-radius:12px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#tourCard h4{margin:0 0 6px;font-size:15px}
+#tourCard p{margin:0 0 12px;line-height:1.5;color:var(--muted)}
+#tourCard .row{justify-content:space-between}
+#tourCard .dots{color:var(--muted);font-size:12px}
+.optview{margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px}
+.optview canvas{display:block;width:100%;height:130px}
+.optlegend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;margin-bottom:4px}
+.optlegend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;z-index:40;max-width:90vw}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Head LED Placement Studio</h1>
+    <div class="sub">LeLamp Head · LED layout, light and heat · outline from the DXF</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="row">
+    <button id="tour" title="Show the walkthrough again">? Walkthrough</button>
+    <button id="undo" title="Undo LED moves (Ctrl+Z)">↶ Undo</button>
+    <button id="redo" title="Redo (Ctrl+Y)">↷ Redo</button>
+    <button id="newDesign" title="Start over with the default head and settings">New</button>
+    <button id="open" title="Open a saved design (.json) or LED positions (.csv)">Open…</button>
+    <button id="saveJson" title="Save everything (settings, layout, snapshots) to a file">Save</button>
+    <button id="theme" title="Light / dark theme">◐</button>
+  </div>
+  <input id="file" type="file" accept=".json,.csv,.txt" hidden>
+</header>
+
+<nav class="steps" id="steps" aria-label="Workflow steps">
+  <button data-step="1"><span class="n">1</span>Head &amp; LEDs</button><span class="arrow">›</span>
+  <button data-step="2"><span class="n">2</span>Layout</button><span class="arrow">›</span>
+  <button data-step="3"><span class="n">3</span>Light &amp; dimming</button><span class="arrow">›</span>
+  <button data-step="4"><span class="n">4</span>Heat</button><span class="arrow">›</span>
+  <button data-step="5"><span class="n">5</span>Compare &amp; export</button>
+</nav>
+
+<div class="main">
+  <!-- ================= LEFT: one step at a time ================= -->
+  <aside class="panel" id="stepPanel">
+
+    <!-- STEP 1 -->
+    <section class="step" data-step="1">
+      <h2>1 · Head &amp; LEDs</h2>
+      <p class="lead">Tell the tool what you're building: how far the diffuser is from the LEDs, how many LEDs, how hard they're driven, and what "good" means.</p>
+      <div class="block">
+        <h3>Head</h3>
+        <label class="f"><span class="lbl">Distance LEDs → diffuser (mm) <span class="q" data-tip="The air gap between the LED board and the diffuser. A bigger gap blends the LEDs into smooth light, but makes the head thicker, and the trapped air insulates the board so it runs hotter.">?</span></span><input type="number" data-k="gap" step="0.5" min="2" max="60"></label>
+        <div class="row" style="margin:-2px 0 8px"><span class="hint" style="margin:0">Quick set:</span><button data-gap="17.9" title="Measured in the Head STEP">17.9 mm (CAD)</button><button data-gap="10">10</button><button data-gap="21">21</button><button data-gap="25">25</button></div>
+        <label class="chk"><input type="checkbox" data-k="keep.on"> Camera lens in the head <span class="q" data-tip="Only the lens circle is kept clear. It starts at the centre of the camera board's mounting holes from the DXF. The lens pokes through to the diffuser, so LEDs can't sit there, the diffuser there is the lens (no light), and the barrel shades the light passing it.">?</span></label>
+        <label class="f" style="margin-top:4px"><span class="lbl">Keep LEDs out of <span class="q" data-tip="Lens circle only: just the lens (default). Original DXF keepout: also the corner zone drawn in WT - Lewis.dxf (x ≥ 19.0, y ≤ 19.22 mm), with the original 2.3 mm LED-centre clearance. That corner is about 2,200 mm² with no LEDs, so the diffuser above it goes dark and evenness drops sharply (about 2% after optimizing vs about 80% with the lens only). The zone moves with the camera.">?</span></span><select data-k="keep.zone"><option value="module">Camera board footprint (CAD)</option><option value="lens">Barrel circle only (what-if)</option><option value="dxf">Original DXF keepout zone (corner)</option></select></label>
+        <div class="grid3" style="margin-top:4px">
+          <label class="f"><span class="lbl">Centre x (mm) <span class="q" data-tip="0 is the centre of the head's round top. Or simply drag the camera block on the canvas.">?</span></span><input type="number" id="camCx" step="0.5"></label>
+          <label class="f"><span class="lbl">Centre y (mm)</span><input type="number" id="camCy" step="0.5"></label>
+          <label class="f"><span class="lbl">LED clearance <span class="q" data-tip="Smallest gap between an LED body and the lens (mm), shown by the dotted circle. The Notion Head page wants LEDs within 2 mm of the camera board to kill its shadow.">?</span></span><input type="number" data-k="keep.margin" step="0.1" min="0"></label>
+          <label class="f"><span class="lbl">Barrel diameter (mm) <span class="q" data-tip="STEP: the lens barrel is Ø14 at the diffuser (flush with its outer face) in a Ø16 hole, so a 1 mm ring is open to the room. Changing it keeps the 1 mm ring.">?</span></span><input type="number" id="camD" step="0.5" min="2"></label>
+          <label class="chk" style="align-self:end;margin-bottom:10px"><input type="checkbox" data-k="keep.occlude"> barrel shades light</label>
+          <button id="camReset" style="align-self:end;margin-bottom:8px" title="Put the camera back where the DXF has it">Reset to DXF</button>
+        </div>
+        <p class="hint" style="margin-top:0">Tip: drag the camera block on the canvas to try other positions.</p>
+      </div>
+      <div class="block">
+        <h3>LEDs</h3>
+        <div class="grid2">
+          <label class="f"><span class="lbl">Number of LEDs <span class="q" data-tip="The Head board has 60 (12 strings of 5). Adding or removing LEDs regroups the strings.">?</span></span><input type="number" data-k="count" step="1" min="1" max="200"></label>
+          <label class="f"><span class="lbl">LEDs per string <span class="q" data-tip="LEDs wired in series on one driver channel. The Head board uses 5. All LEDs in a string carry the same current.">?</span></span><input type="number" data-k="perString" step="1" min="1" max="10"></label>
+        </div>
+        <label class="f"><span class="lbl">Drive current per string: <b id="curLbl"></b> <span class="q" data-tip="Current through each string. More current gives more light, more power and more heat. 25 mA × 60 LEDs is about 4 W. The TLC59711 driver tops out at 60.5 mA with the board's 820 Ω set resistor.">?</span></span><input type="range" data-k="current" min="1" max="60.5" step="0.5"></label>
+        <div class="grid2">
+          <label class="f"><span class="lbl">Colour temperature <span class="q" data-tip="Picks the LED's datasheet flux (Cree JB2835B F-class Pro9, 90 CRI, typical at 65 mA, p.5) and how fast it dims when hot (from the 85 °C column). Warmer white gives less light. The board's actual part number decodes as 6500 K.">?</span></span><select data-k="cct"><option value="2700">2700 K · 34.5 lm</option><option value="3000">3000 K · 36.2 lm</option><option value="3500">3500 K · 37.5 lm</option><option value="4000">4000 K · 38.0 lm</option><option value="5000">5000 K · 38.0 lm</option><option value="5700">5700 K · 37.5 lm</option><option value="6500">6500 K · 37.5 lm (board part)</option><option value="custom">Custom (Advanced → Flux @ ref)</option></select></label>
+          <label class="f"><span class="lbl">LED flux <span class="q" data-tip="Typical = datasheet typical. Worst case = typical − 7%, the datasheet's flux measurement tolerance (the old program applied this by default). Use worst case to check the targets still hold for a low LED.">?</span></span><select data-k="fluxCase"><option value="typ">Typical (datasheet)</option><option value="tol">Worst case (−7% tolerance)</option></select></label>
+        </div>
+        <div class="readout" id="driveKv"></div>
+        <button id="sweepI" title="Try every current from 1 mA to the driver limit and pick the lowest that meets the light-out and desk targets">Find lowest current that meets the targets</button>
+        <p class="hint" id="sweepOut">Checks 1 to 60.5 mA in 0.5 mA steps with this layout. Less current = less power and heat.</p>
+      </div>
+      <div class="block">
+        <h3>What counts as "good"</h3>
+        <div class="grid3">
+          <label class="f"><span class="lbl">Min light (lm) <span class="q" data-tip="Target light leaving the diffuser. The brief's provisional value is 300 lm.">?</span></span><input type="number" data-k="targetLm" step="10"></label>
+          <label class="f"><span class="lbl">Evenness (%) <span class="q" data-tip="Target for darkest spot ÷ average brightness. The brief's provisional value is 65%.">?</span></span><input type="number" data-k="targetUniformPct" step="1"></label>
+          <label class="f"><span class="lbl">Max board °C <span class="q" data-tip="Hottest allowed point on the LED board. The brief's provisional value is 40 °C; confirm the real limit with Zoheb/Rizwan.">?</span></span><input type="number" data-k="maxBoard" step="1"></label>
+        </div>
+        <div class="grid3">
+          <label class="f"><span class="lbl">Desk min (lx) <span class="q" data-tip="Notion target (Ben, from EN 12464-1): at least 500 lx everywhere on the desk circle.">?</span></span><input type="number" data-k="targetLux" step="10"></label>
+          <label class="f"><span class="lbl">Desk distance (mm) <span class="q" data-tip="Diffuser to desk. Notion target: 40 cm.">?</span></span><input type="number" data-k="taskZ" step="10" min="50"></label>
+          <label class="f"><span class="lbl">Desk circle Ø (mm) <span class="q" data-tip="Area that must be lit. Notion target: 40 cm diameter.">?</span></span><input type="number" data-k="taskD" step="10" min="50"></label>
+        </div>
+        <label class="f"><span class="lbl">Room light already on the desk (lx) <span class="q" data-tip="Light from the room (ceiling lights, daylight) landing on the desk. It adds to the lamp's light, and the 500 lx target (EN 12464-1) is the total on the desk, so a lit room needs less from the lamp. 0 = dark room, the worst case and the default: the lamp must provide all 500 lx. It only affects the desk; room light on the diffuser is under 1% of its brightness. Used by the desk tile, the optimizer's desk limit, Auto-balance, the lowest-current search, the checklist and the 3D view. No measured room value exists yet: measure it with a lux meter with the lamp off.">?</span></span><input type="number" data-k="roomLux" step="50" min="0" max="5000"></label>
+        <label class="f"><span class="lbl">Power budget (W) <span class="q" data-tip="Electrical power into the LEDs. 4 W was the low-heat operating point in the heat-calc doc.">?</span></span><input type="number" data-k="powerBudget" step="0.1"></label>
+      </div>
+      <details class="adv">
+        <summary>Advanced: shape, clearances, LED data</summary>
+        <div class="grid3">
+          <label class="f"><span class="lbl">Width scale</span><input type="number" data-k="shape.sx" step="0.01" min="0.5" max="1.5"></label>
+          <label class="f"><span class="lbl">Height scale</span><input type="number" data-k="shape.sy" step="0.01" min="0.5" max="1.5"></label>
+          <label class="f"><span class="lbl">Beam m <span class="q" data-tip="LED beam shape, cos^m. 1 = Lambertian (the 2835 is close to this). Higher = narrower beam.">?</span></span><input type="number" data-k="m" step="0.1" min="0.5" max="10"></label>
+          <label class="f"><span class="lbl">Wall gap <span class="q" data-tip="Smallest gap between an LED body and the head wall (mm). The dashed yellow line shows it; no LED body may cross any dotted line.">?</span></span><input type="number" data-k="edgeMargin" step="0.1" min="0" max="20"></label>
+          <label class="f"><span class="lbl">Min spacing <span class="q" data-tip="Closest two LED centres may be (mm). A 2835 package is 2.8 × 3.5 mm.">?</span></span><input type="number" data-k="minPitch" step="0.1" min="3" max="30"></label>
+          <label class="f"><span class="lbl">Ignore rim <span class="q" data-tip="Width of the diffuser rim (mm) left out of the evenness numbers, because the shell lip hides it.">?</span></span><input type="number" data-k="evalInset" step="0.5" min="0" max="15"></label>
+        </div>
+        <div class="grid3" style="margin-top:6px">
+          <label class="f"><span class="lbl">Flux @ ref (lm) <span class="q" data-tip="Used only when colour temperature is set to Custom.">?</span></span><input type="number" data-k="refFlux" step="0.1"></label>
+          <label class="f"><span class="lbl">Ref current (mA)</span><input type="number" data-k="refI" step="1"></label>
+          <label class="f"><span class="lbl">Vf (V)</span><input type="number" data-k="vf" step="0.01"></label>
+          <label class="f"><span class="lbl">VDD_LED (V) <span class="q" data-tip="LED supply rail from the LMR51420 buck. About 13.4 V from the schematic's 100k/4.7k divider.">?</span></span><input type="number" data-k="vddLed" step="0.01"></label>
+          <label class="f"><span class="lbl">Rθ j-s (K/W)</span><input type="number" data-k="rjs" step="0.5"></label>
+        </div>
+        <label class="f"><span class="lbl">Simulation detail</span><select data-k="res"><option value="1">Fine (1 mm, slower)</option><option value="1.5">Normal (1.5 mm)</option><option value="2">Fast (2 mm)</option></select></label>
+        <p class="hint">LED data is the Cree JB2835B F-class Pro9 datasheet (2.70 V at 65 mA, Rθ j-s 5 K/W, flux per colour temperature). The board's J-class part may differ; the brief says not to mix the two datasheets.</p>
+      </details>
+      <div class="next"><span></span><button class="primary" data-goto="2">Next: Layout →</button></div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step" data-step="2">
+      <h2>2 · Layout</h2>
+      <p class="lead">Decide where the LEDs go. Start from a generated layout, then let the optimizer improve it, or drag LEDs yourself on the canvas.</p>
+      <div class="block">
+        <h3>Start from</h3>
+        <div class="big-actions">
+          <button class="primary" id="randomize">🎲 Randomize<small>Random but evenly spread</small></button>
+          <button id="hex">⬡ Hex grid<small>Regular honeycomb</small></button>
+          <button id="cvt">◎ Even out<small>Equal area per LED</small></button>
+          <button id="jitter">↯ Jitter<small>Nudge all ±1 mm</small></button>
+        </div>
+        <details class="adv">
+          <summary>Randomize options</summary>
+          <label class="f"><span class="lbl">Style <span class="q" data-tip="Evenly spread (Poisson-disk) never clumps and keeps spacing. Pure random can clump: useful to see why spreading matters.">?</span></span><select id="randMode"><option value="poisson">Evenly spread (Poisson-disk)</option><option value="uniform">Pure random</option></select></label>
+          <div class="grid2">
+            <label class="f"><span class="lbl">Seed <span class="q" data-tip="Same seed = same random layout, so results are reproducible.">?</span></span><input type="number" id="seed" value="1" step="1"></label>
+            <label class="chk" style="margin-top:18px"><input type="checkbox" id="autoSeed" checked> new seed each time</label>
+          </div>
+        </details>
+      </div>
+      <div class="block">
+        <h3>Improve automatically</h3>
+        <div class="row">
+          <button class="primary big" id="optimize" title="Improve the current layout">✨ Optimize this layout</button>
+          <button class="big" id="auto" title="Try several fresh layouts and keep the best">Find best from scratch</button>
+          <button id="stop" disabled>Stop</button>
+        </div>
+        <label class="chk" style="margin-top:8px"><input type="checkbox" data-k="deskLimit"> Keep desk light ≥ the step 1 target <span class="q" data-tip="Hard limit: the optimizer and Auto-balance only accept layouts whose darkest point on the desk circle meets the target (500 lx over a 40 cm circle at 40 cm, from Ben's Notion research). If the start is below it, they first climb toward it. If it cannot be reached at this current you get a warning. Below about 23 mA it can only be met by bunching LEDs, which makes the diffuser uneven.">?</span></label>
+        <label class="chk"><input type="checkbox" data-k="dimJoint"> Optimize string dimming at the same time <span class="q" data-tip="Moves LEDs and changes each string's PWM duty in the same search (like Moreno solving ring radius and centre-LED flux together). In our tests (checks/dimming-compare.js, 6 runs) it gave slightly better evenness than placing first and then pressing Auto-balance (80.5% vs 79.3%, better in 4 of 6) but kept less light (85% vs 99%), because it dims strings to get there.">?</span></label>
+        <div class="prog"><div id="progbar"></div></div>
+        <div class="optview">
+          <div class="optlegend"><span><i style="background:#ff8a3d"></i>Evenness</span><span><i style="background:#4dabf7"></i>Variation</span><span class="hint" style="margin:0" id="optTitle">Progress appears here while it runs</span></div>
+          <canvas id="optChart" width="330" height="130" aria-label="Optimization progress chart"></canvas>
+          <p class="hint" id="optStats">Runs in the background, so you can watch it work. Ctrl+Z undoes it.</p>
+        </div>
+        <details class="adv">
+          <summary>What should it prioritise?</summary>
+          <p class="hint" style="margin-top:0">Score = variation (Su 2012, Yang 2009) + evenness (the brief's target). Set how much each counts.</p>
+          <label class="f"><span class="lbl">Smooth overall <span class="q" data-tip="Reduce brightness variation across the whole diffuser (CV).">?</span></span><input type="range" id="w_cv" min="0" max="2" step="0.05"></label>
+          <label class="f"><span class="lbl">No dark spots <span class="q" data-tip="Raise the darkest spot towards the average (evenness).">?</span></span><input type="range" id="w_min" min="0" max="2" step="0.05"></label>
+          <div class="grid2">
+            <label class="f"><span class="lbl">Effort</span><select id="iters"><option value="2500">Quick</option><option value="6000" selected>Normal</option><option value="15000">Thorough</option></select></label>
+            <label class="f"><span class="lbl">Fresh tries <span class="q" data-tip="How many starting layouts 'Find best from scratch' tries.">?</span></span><input type="number" id="starts" value="3" min="1" max="12"></label>
+          </div>
+        </details>
+      </div>
+      <div class="block">
+        <h3>Edit by hand</h3>
+        <p class="hint" style="margin-top:0"><b>Drag</b> an LED to move it · <b>Add</b>/<b>Remove</b> tools are above the canvas · arrow keys nudge the selected LED (Shift = bigger steps) · Delete removes it.</p>
+        <div class="readout" id="layoutKv"></div>
+      </div>
+      <div class="next"><button data-goto="1">← Back</button><button class="primary" data-goto="3">Next: Light &amp; dimming →</button></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step" data-step="3">
+      <h2>3 · Light &amp; dimming</h2>
+      <p class="lead">See how the light lands on the diffuser: yellow is bright, purple is dark. The head's inside walls are treated as absorbing, as in Moreno, Yang and Ben's sim; test reflective walls on the bench and compare against this baseline.</p>
+      <div class="block">
+        <h3>Diffuser</h3>
+        <label class="f"><span class="lbl">Diffuser lets through (fraction) <span class="q" data-tip="Share of light that passes through the diffuser. Notion's Head spec says at least 0.70.">?</span></span><input type="number" data-k="tau" step="0.01" min="0.05" max="1"></label>
+        <div class="readout" id="lightKv"></div>
+      </div>
+      <div class="block">
+        <h3>Where the light goes <span class="q" data-tip="Every lumen the LEDs emit, from the Head STEP geometry: lit aperture, drafted walls, 43° chamfer, lip, camera barrel and the open ring round it. Shell opaque PLA and seams sealed (your answers).">?</span></h3>
+        <div class="readout" id="budgetKv"></div>
+      </div>
+      <div class="block">
+        <h3>Fine-tune with dimming <span class="q" data-tip="Each driver channel runs one string of 5 LEDs, so you can dim strings (not single LEDs) in firmware. Dimming bright regions evens the light, at the cost of some output.">?</span></h3>
+        <div class="grid2">
+          <label class="f"><span class="lbl">Group LEDs into strings by <span class="q" data-tip="Rows: shortest wiring. Zones: rings from the rim inward, so each channel controls one region, which works better for dimming. Changing this re-groups the strings.">?</span></span><select data-k="stringMode"><option value="rows">Rows (short wiring)</option><option value="zones">Zones (rim → centre)</option></select></label>
+          <label class="f"><span class="lbl">Dimmest allowed <span class="q" data-tip="Lowest duty auto-balance may use, 0–1.">?</span></span><input type="number" data-k="minDuty" step="0.05" min="0" max="1"></label>
+        </div>
+        <div class="row">
+          <button class="primary" id="balance">⚖ Auto-balance</button>
+          <button id="dutyReset">All 100%</button>
+          <button id="reassign" title="Re-group LEDs into strings">Re-group strings</button>
+        </div>
+        <div id="dutyList" class="duty"></div>
+        <p class="hint" id="dutyInfo"></p>
+      </div>
+      <div class="next"><button data-goto="2">← Back</button><button class="primary" data-goto="4">Next: Heat →</button></div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step" data-step="4">
+      <h2>4 · Heat</h2>
+      <p class="lead">A full heat map of the board, built on Ben's Notion heat-calc network (front: air gap → diffuser → room) and adding the back cavity, the PLA screw bosses, conduction through the metal-core board, and the on-board electronics, with geometry measured from the Head STEP. LED chip temperature from Hui &amp; Qin (2009). Click 🌡 Heat above the canvas to see it. Ben's own front-only number is kept at the bottom for reference.</p>
+      <div class="block">
+        <h3>Case</h3>
+        <label class="f"><span class="lbl">Air movement <span class="q" data-tip="Ben bounded the unknown air movement with two cases. Worst: still air in the gap (Nu = 1) and weak outside convection (h = 2 W/m²K). Best: Nu = 3 and h = 25 W/m²K. The status strip always shows both as a range.">?</span></span><select data-k="thermalCase"><option value="worst">Worst case (Ben): Nu 1, h 2</option><option value="best">Best case (Ben): Nu 3, h 25</option><option value="custom">Custom</option></select></label>
+        <div class="grid2" id="customCase">
+          <label class="f"><span class="lbl">Nu in the gap <span class="q" data-tip="Nusselt number: 1 = air only conducts; higher = air circulates and carries more heat.">?</span></span><input type="number" data-k="Nu" step="0.1" min="1"></label>
+          <label class="f"><span class="lbl">Outside h (W/m²K) <span class="q" data-tip="Convection coefficient from the diffuser to the room. Ben used 2 (worst) to 25 (best).">?</span></span><input type="number" data-k="hOut" step="0.5" min="0.5"></label>
+        </div>
+        <div class="grid2">
+          <label class="f"><span class="lbl">Room °C</span><input type="number" data-k="ambient" step="0.5"></label>
+          <label class="f"><span class="lbl">Share of power → heat <span class="q" data-tip="k_h in Hui & Qin 2009. They measured 0.85; Qin & Hui 2010 quote 85–90% of LED input becoming heat.">?</span></span><input type="number" data-k="kh" step="0.01" min="0" max="1"></label>
+        </div>
+        <details class="adv">
+          <summary>Materials (Ben's values)</summary>
+          <div class="grid2">
+            <label class="f"><span class="lbl">Diffuser thickness (mm)</span><input type="number" data-k="diffT" step="0.1" min="0.1"></label>
+            <label class="f"><span class="lbl">Diffuser k (W/m·K)</span><input type="number" data-k="diffK" step="0.01" min="0.01"></label>
+            <label class="f"><span class="lbl">Board emissivity</span><input type="number" data-k="emissBoard" step="0.01" min="0" max="1"></label>
+            <label class="f"><span class="lbl">Diffuser emissivity</span><input type="number" data-k="emissDiff" step="0.01" min="0" max="1"></label>
+          </div>
+          <p class="hint">PC diffuser 1 mm, k 0.2 W/m·K; FR4 emissivity 0.85; PC 0.9 (Ben's calc). The PCB area comes from the head outline (≈11,900 mm², vs Ben's 12,000).</p>
+        </details>
+        <h3 style="margin-top:12px">Full heat map <span class="q" data-tip="2-D map of the board: heat spreads through the metal-core board and leaves through the front (Ben's network), the 727 cm³ back cavity to Head Back (STEP depths) and the PLA screw bosses. Sources: every LED and the on-board electronics. Click 🌡 Heat above the canvas to see it.">?</span></h3>
+        <div class="readout" id="thermKv"></div>
+        <details class="adv">
+          <summary>Board and electronics (map inputs)</summary>
+          <div class="grid2">
+            <label class="f"><span class="lbl">Board <span class="q" data-tip="Metal-core (your answer). No stack-up yet, so typical values are assumed: 1.6 mm aluminium (k 138), 1 oz copper, 0.1 mm dielectric (k 2). FR4 is for comparison.">?</span></span><select data-k="pcb.type"><option value="mcpcb">Metal-core (aluminium)</option><option value="fr4">FR4 (comparison)</option></select></label>
+            <label class="f"><span class="lbl">Aluminium thickness (mm)</span><input type="number" data-k="pcb.tBase" step="0.1" min="0.5"></label>
+            <label class="f"><span class="lbl">Dielectric k (W/m·K) <span class="q" data-tip="Insulating layer between the copper and the aluminium. Typical MCPCB 1–3 W/m·K. Adds to the LED chip temperature only.">?</span></span><input type="number" data-k="pcb.kDiel" step="0.1" min="0.2"></label>
+            <label class="f"><span class="lbl">Board back emissivity <span class="q" data-tip="Bare aluminium ≈ 0.05–0.1; painted or anodised ≈ 0.8–0.9. Sets radiation into the back cavity.">?</span></span><input type="number" data-k="pcb.epsBack" step="0.05" min="0.02" max="1"></label>
+            <label class="f"><span class="lbl">Electronics heat (W) <span class="q" data-tip="Your table, worst case: 4.6 W from the 24 V input (SoC 2.4 + XVF3800 0.5 + camera 0.5 + mics, ~73% DC/DC efficiency). Typical: 2.0 W. Spread evenly over the board (positions unknown) except the camera share.">?</span></span><input type="number" data-k="elecW" step="0.1" min="0"></label>
+            <label class="f"><span class="lbl">…of which camera (W)</span><input type="number" data-k="camW" step="0.1" min="0"></label>
+            <label class="f"><span class="lbl">Motor heat into the head (W) <span class="q" data-tip="Not in your table. It would enter through the Head Back motor cup.">?</span></span><input type="number" data-k="motorW" step="0.1" min="0"></label>
+            <label class="f"><span class="lbl">PLA limit (°C) <span class="q" data-tip="PLA's glass transition is about 55–60 °C; above it the bosses and shell soften.">?</span></span><input type="number" data-k="plaMax" step="1"></label>
+          </div>
+        </details>
+        <h3 style="margin-top:12px">Ben's network (reference) <span class="q" data-tip="Ben's published hand calculation, unchanged: LED heat only, through the front only.">?</span></h3>
+        <div class="readout" id="benKv"></div>
+      </div>
+      <div class="next"><button data-goto="3">← Back</button><button class="primary" data-goto="5">Next: Compare →</button></div>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="step" data-step="5">
+      <h2>5 · Compare &amp; export</h2>
+      <p class="lead">Save each design you want to test (Baseline, A, B…) and compare them side by side. The comparison opens over the canvas.</p>
+      <div class="block">
+        <h3>Save this design</h3>
+        <div class="row"><input type="text" id="snapName" placeholder="e.g. Baseline" style="flex:1"><button class="primary" id="snapSave">Save snapshot</button></div>
+      </div>
+      <div class="block">
+        <h3>Constraint checklist <span class="q" data-tip="Every limit the design is checked against, and where each limit comes from. Failed checks not already on the status strip also show in the issues chip.">?</span></h3>
+        <div id="checkList"></div>
+      </div>
+      <div class="block">
+        <h3>Export</h3>
+        <div class="row">
+          <button id="saveCsv" title="Position, string and dimming of every LED">LED positions (CSV)</button>
+          <button id="saveDxf" title="Outline, camera and LED bodies for CAD">CAD drawing (DXF)</button>
+          <button id="saveSpacing" title="Distance between every pair of neighbouring LEDs">LED spacing (CSV)</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="dxfSpacing" checked> include LED-to-LED distances in the DXF</label>
+        <p class="hint">For building: the canvas shows neighbour distances when "spacing" is ticked, the LED CSV lists each LED's position from the left and bottom edges of the head plus its nearest neighbour, and clicking an LED shows its nearest distances under the canvas.</p>
+        <p class="hint">Use Save (top right) to keep the whole project, snapshots included.</p>
+      </div>
+      <div class="next"><button data-goto="4">← Back</button><span></span></div>
+    </section>
+  </aside>
+
+  <!-- ================= RIGHT: status strip + canvas / compare ================= -->
+  <section>
+    <div class="strip" id="strip"></div>
+    <div class="panel" id="canvasPanel">
+      <div class="bar">
+        <div class="seg" role="group" aria-label="Edit tool">
+          <button data-tool="move" class="on" title="Drag LEDs (V)">✥ Move</button>
+          <button data-tool="add" title="Click empty space to add an LED (A)">＋ Add</button>
+          <button data-tool="remove" title="Click an LED to remove it (X)">－ Remove</button>
+        </div>
+        <div class="seg" role="group" aria-label="Show">
+          <button data-ov="diffuser" title="Brightness on the diffuser">☀ Light</button>
+          <button data-ov="heat" title="Board temperature map (full heat model)">🌡 Heat</button>
+          <button data-ov="none" title="Layout only">Layout only</button>
+          <button id="btn3d" title="3D view of the head, its light and the desk below (drag to orbit, right-drag or Shift-drag to pan, wheel to zoom)">🧊 3D</button>
+        </div>
+        <select id="overlay" hidden><option value="diffuser">diffuser</option><option value="heat">heat</option><option value="none">none</option></select>
+        <span class="spacer"></span>
+        <label class="chk"><input type="checkbox" id="showSpacing"> spacing (mm)</label>
+        <label class="chk"><input type="checkbox" id="showStrings"> colour by string</label>
+        <details class="adv" style="margin:0;padding:2px 8px">
+          <summary>View options</summary>
+          <label class="chk"><input type="checkbox" id="showLabels"> LED numbers</label>
+          <label class="chk"><input type="checkbox" id="keepValid" checked> LEDs slide along limits</label>
+          <label class="chk">snap to <input type="number" id="snap" value="0" min="0" max="5" step="0.1" style="width:60px"> mm</label>
+          <label class="f"><span class="lbl">Light colour scale</span><select id="scale"><option value="mean">±40% of average</option><option value="auto">darkest → brightest</option></select></label>
+        </details>
+      </div>
+      <div class="canvaswrap">
+        <canvas id="view" width="900" height="660" tabindex="0" aria-label="LED placement editor. Drag LEDs; arrow keys nudge the selected LED; Delete removes it."></canvas>
+        <div class="legend" id="legend"><div id="legTitle"></div><canvas id="legBar" width="180" height="9"></canvas><div style="display:flex;justify-content:space-between"><span id="legLo"></span><span id="legHi"></span></div></div>
+        <div id="v3d" style="display:none">
+          <div class="v3bar">
+            <label>Scene <select id="v3scene"><option value="diagram">Diagram (compare)</option><option value="room">Bedroom nightstand (realistic)</option></select></label>
+            <span id="v3diagOpts"><label>Look <select id="v3mode"><option value="spots">Hot &amp; dark spots (% from average)</option><option value="abs">Brightness (one shared scale)</option><option value="real">Real look (camera)</option></select></label>
+            <label id="v3rangeL">full colour at <select id="v3range"><option value="10">±10%</option><option value="25" selected>±25%</option><option value="50">±50%</option></select></label>
+            <span id="v3realOpts" style="display:none"><label>expose for <select id="v3expose"><option value="diffuser">diffuser</option><option value="desk">desk</option></select></label> <label>brightness <input type="range" id="v3ev" min="-4" max="4" step="0.25" value="0" style="width:70px"></label></span>
+            <label title="Exaggerated height: brightness drawn as a landscape so ripples and dark edges stand out. 0 = flat.">Relief <input type="range" id="v3relief" min="0" max="3" step="0.25" value="1" style="width:70px"></label>
+            <label title="Colour the LED board by the full heat map (one °C scale for all panels)">Board <select id="v3board"><option value="leds">LEDs</option><option value="heat">temperature</option></select></label>
+            <label>Walls <select id="v3walls"><option value="glass">see-through</option><option value="solid">solid</option><option value="hide">hidden</option></select></label>
+            <label>Open up <input type="range" id="v3explode" min="0" max="1" step="0.05" value="0" style="width:60px"></label>
+            <label class="chk"><input type="checkbox" id="v3beams"> beam cones</label></span>
+            <span id="v3roomOpts" style="display:none"><label>exposure <input type="range" id="v3roomEv" min="-4" max="4" step="0.25" value="0" style="width:80px"></label> <button data-v3cam="room">Room</button><button data-v3cam="roomLow">Nightstand</button></span>
+            <span class="v3sep"></span>
+            <span>Compare with:</span><span id="v3cmp"></span>
+            <label class="chk" title="Put the first ticked snapshot first, so it sets the reference for Real-look exposure and relief height"><input type="checkbox" id="v3refSnap" checked> snapshot is reference</label>
+            <span class="spacer"></span>
+            <button data-v3cam="head">Head</button><button data-v3cam="below">From below</button><button data-v3cam="scene">Whole scene</button><button data-v3cam="side">Side</button><button id="v3png" title="Save all panels as one PNG">PNG</button><button id="v3full" title="Full screen (Esc to leave)">⛶</button>
+          </div>
+          <div id="v3dHost"></div>
+          <div class="v3info" id="v3info"></div>
+        </div>
+        <div class="hintbar" id="hintbar">Drag LEDs to move them</div>
+        <div class="status" id="status">Ready</div>
+      </div>
+      <div class="foot">
+        <span id="cursor">x —, y — mm</span>
+        <span>Selected: <b id="selName">none</b></span>
+        <label>x <input type="number" id="selX" step="0.1" disabled></label>
+        <label>y <input type="number" id="selY" step="0.1" disabled></label>
+        <span id="selDist"></span>
+        <span id="violations"></span>
+      </div>
+    </div>
+    <div class="panel" id="comparePanel" style="display:none;padding:12px 14px">
+      <div class="row"><h3 style="margin:0;font-size:15px">Side-by-side comparison</h3><span class="spacer"></span><button id="backToCanvas">Show canvas</button></div>
+      <p class="hint">★ marks the best value in each row. Restore a snapshot to keep working on it.</p>
+      <div class="cmp" id="snaps"></div>
+    </div>
+  </section>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="engine.js?v=21"></script>
+<script src="view3d.js?v=9"></script>
+<script src="app.js?v=27"></script>
+</body>
+</html>

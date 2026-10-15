@@ -1,0 +1,111 @@
+PASS  1. Single-LED light matches the closed-form formula
+      source:   Ben's 'LED research doc + sim'; Moreno 2006 Eq. 3
+      expected: directly above: 1.0879 ‰/mm²; one gap sideways: 0.2689 ‰/mm²
+      got:      1.0879 and 0.2689
+
+PASS  2. Light is conserved (nothing created or lost inside the head)
+      source:   Lambertian integral (Ben's derivation: Φ = π I₀)
+      expected: ≥ 99.4% lands on the diffuser (nearest wall ≥ 40 mm away), never > 100%
+      got:      99.84%
+
+PASS  3. Hex layout geometry reproduces Moreno's published optimum
+      source:   Moreno, Avendaño-Alejo & Tzonchev 2006, Fig. 7 (d0 = 0.192 z)
+      expected: d0 ≈ 0.192 z
+      got:      0.191 z
+
+PASS  4. Hotspot ripple between LEDs matches the infinite-array (Fourier) prediction
+      source:   Yang et al. 2009, Eq. 12 (ripple = LED spectrum sampled at the grid frequencies)
+      expected: RMS ripple ≈ 2.37% (10 mm), 0.27% (14 mm); at 21 mm the ripple (0.01%) is below the test array's own finite-size shape, so < 0.2%
+      got:      2.32%, 0.27%, 0.11%
+
+PASS  5. Thermal network reproduces Ben's hand calculation
+      source:   Ben Tran-Pugh, Notion 'LED array heat calcs'
+      expected: worst case 247 °C, best case 139.3 °C (R: 11 + 0.42 + 10.77, 8.3 + 0.42 + 2.71 K/W)
+      got:      247.1 °C (11.02 + 0.42 + 10.77), 139.3 °C (8.30 + 0.42 + 2.71)
+
+PASS  6. Heat and LED temperature follow Hui & Qin
+      source:   Hui & Qin 2009, Eqs. 2, 3, 5a
+      expected: Q = k_h·N·P_d = 3.443 W; T_j = T_board + R_jc·k_h·P_d = 90.98 °C; flux at 125 °C = 1 − (1 − 33.7/36.2)/60·100 = 0.8849 (Pro9 p.5 85 °C column)
+      got:      Q = 3.443 W; T_j = 90.98 °C; flux ratio 0.885
+
+PASS  7. Driver limits from the Head schematic
+      source:   Head_Board.pdf: R82 = 820 Ω on TLC59711 IREF; LMR51420 FB 100k/4.7k
+      expected: max 41 × 1.21 V / 820 Ω = 60.5 mA; 12 strings × 5; headroom 13.37 − 5 × 2.70 = −0.13 V
+      got:      60.5 mA; 12 strings; -0.13 V
+
+PASS  8. Randomize is reproducible by seed and never breaks a limit
+      source:   Bridson 2007
+      expected: same seed → same layout; new seed → new layout; 60 LEDs, all legal
+      got:      same: true, different: true, count 60, legal: true
+
+PASS  9. Even out equalises the area per LED
+      source:   Du, Faber & Gunzburger 1999 (Lloyd iteration)
+      expected: spread of per-LED area drops a lot
+      got:      44% → 19%
+
+PASS  10. Optimize improves evenness and variation without breaking limits
+      source:   Su, Xue & Ji 2012; Lei, Wang & Zou 2014
+      expected: evenness ↑, variation ↓, no LED outside limits, same seed → same answer
+      got:      evenness 15% → 83%, variation 24.7% → 5.5%, legal true, repeatable true
+
+PASS  11. String dimming is linear; auto-balance raises evenness
+      source:   Moreno 2006 §3.C (dimmed centre LED); Yang 2009 §III
+      expected: halving string 1 removes exactly half its light; evenness after ≥ before
+      got:      light change 100.000% of expected; evenness 0% → 0% (light kept 88%)
+
+PASS  12. Camera lens: no LED inside its clearance, no light on the lens
+      source:   DXF camera position; Notion Head page (camera flush with diffuser)
+      expected: every LED body outside the dotted circle: centre ≥ 10.24 mm from the lens centre; 0 lit lens cells
+      got:      closest LED centre 12.04 mm; 0 lit lens cells
+
+PASS  13. LED spacing table is consistent
+      source:   Geometry (for building Baseline/A/B)
+      expected: all pairs ≥ 4.5 mm, distances match positions
+      got:      146 pairs, min 14.0 mm, consistent true
+
+PASS  14. Desk light reproduces Ben's worked example
+      source:   Ben's Notion 'LED research doc + sim' (flux = E pi h^2 -> 251 lm for 500 lx at 40 cm)
+      expected: about 499 lx straight below for a point source; a few % less for our 14 cm-wide diffuser
+      got:      488.6 lx at the centre
+
+PASS  15. Desk-light limit holds through optimization and dimming
+      source:   Ben's Notion target: >= 500 lx over a 40 cm circle at 40 cm
+      expected: desk minimum >= 500 lx after Optimize with joint dimming
+      got:      500 lx (optimizer reported 500 lx, met: true)
+
+PASS  16. Colour temperature flux matches the datasheet
+      source:   Cree JB2835B F-class Pro9 datasheet p.5 (90 CRI, 65 mA, Tj 25 / 85 C); +/-7 % flux tolerance
+      expected: 3000 K 36.2/33.7, 4000 K 38.0/35.4, 5000 K 38.0/35.4 lm; worst case 3000 K = 33.7 lm
+      got:      3000 K: 36.2 / 33.7 · 4000 K: 38.0 / 35.4 · 5000 K: 38.0 / 35.4 · worst case 33.7 lm
+
+PASS  17. Lowest-current search finds the threshold
+      source:   Old program's optimizeCurrent (lowest power meeting all constraints); targets 300 lm and 500 lx
+      expected: returned current meets 300 lm and 500 lx; 0.5 mA lower misses one of them
+      got:      31.5 mA → 397 lm, 500 lx; at 31.0 mA: 391 lm, 493 lx
+
+PASS  18. Constraint checklist catches limit breaks
+      source:   Pro9 datasheet p.4 (Tj 125 C, -40..105 C); TLC59711 60.5 mA (R82); brief 40 C goal
+      expected: Driver current, Ambient rating, LED junction, Board temperature, Diffuser outside (touch), Supply headroom
+      got:      Board temperature, LED junction, Diffuser outside (touch), Driver current, Ambient rating, Supply headroom
+
+PASS  19. Room light adds to the desk and lowers the current needed
+      source:   Illuminances add (superposition); EN 12464-1 target is total task illuminance
+      expected: desk min/avg rise by exactly 300 lx; lowest current with 300 lx room light < dark-room value
+      got:      min 377 → 677, avg 465 → 765 lx; lowest current 26.0 → 19.5 mA (light-out target still applies)
+
+PASS  20. Heat map reduces to Ben's network
+      source:   Ben's Notion 'LED array heat calcs' network (front path); Fourier conduction in the board
+      expected: board 90.69 °C (Ben), flat to 0.01 °C
+      got:      90.69 / 90.69 °C
+
+PASS  21. Heat map conserves energy; grid converged
+      source:   Energy conservation; grid refinement
+      expected: out = in = 8.042 W (LEDs 3.44 + electronics 4.60); hottest point within 0.5 °C on a finer grid
+      got:      out 8.043 W (front 5.55, back 1.75, bosses 0.74); 120.36 vs 120.33 °C
+
+PASS  22. Light budget accounts for every lumen
+      source:   Energy conservation; STEP geometry (aperture, camera ring)
+      expected: shares sum to 100 %; diffuser share = light landing on the aperture in the field model
+      got:      diffuser 71.76% (field 71.76%), walls 27.42%, camera 0.71%, ring 0.103% → 100.000%
+
+22 passed, 0 failed

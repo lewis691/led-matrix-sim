@@ -1,0 +1,12 @@
+6 runs (3 starts x 2 seeds), 6000 iterations, zone strings, min duty 0.3, 10 mm gap
+
+hex       seed 9  | two-pass: evenness 77%, CV 11.2%, score 0.247, light kept 98%  | joint: evenness 81%, CV 11.0%, score 0.225, light kept 85%
+hex       seed 31 | two-pass: evenness 81%, CV 10.6%, score 0.223, light kept 99%  | joint: evenness 81%, CV 10.8%, score 0.223, light kept 85%
+random A  seed 9  | two-pass: evenness 80%, CV 11.0%, score 0.228, light kept 97%  | joint: evenness 80%, CV 11.3%, score 0.233, light kept 85%
+random A  seed 31 | two-pass: evenness 78%, CV 11.4%, score 0.246, light kept 99%  | joint: evenness 82%, CV 10.6%, score 0.216, light kept 78%
+random B  seed 9  | two-pass: evenness 82%, CV 10.2%, score 0.208, light kept 99%  | joint: evenness 80%, CV 11.6%, score 0.235, light kept 83%
+random B  seed 31 | two-pass: evenness 77%, CV 11.0%, score 0.247, light kept 99%  | joint: evenness 80%, CV 10.8%, score 0.230, light kept 91%
+
+AVERAGE two-pass: evenness 79.3%, CV 10.9%, score 0.233, light kept 99%
+AVERAGE joint   : evenness 80.5%, CV 11.0%, score 0.227, light kept 85%
+joint scored better in 4 of 6 runs

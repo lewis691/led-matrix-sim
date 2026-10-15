@@ -1,0 +1,14 @@
+
+--- 25 mA (4.05 W), hex start ---
+hex start                                    | evenness  23% | CV 18.5% | desk min  588 lx (avg 720)
+optimize, limit OFF                          | evenness  80% | CV 10.5% | desk min  545 lx (avg 665) | limit met: yes
+optimize, limit ON                           | evenness  80% | CV 10.5% | desk min  545 lx (avg 665) | limit met: yes
+optimize + joint dimming, limit OFF          | evenness  82% | CV 10.6% | desk min  462 lx (avg 564) | limit met: NO
+optimize + joint dimming, limit ON           | evenness  78% | CV 10.5% | desk min  503 lx (avg 614) | limit met: yes
+
+--- 20 mA (3.24 W), hex start ---
+hex start                                    | evenness  23% | CV 18.5% | desk min  476 lx (avg 583)
+optimize, limit OFF                          | evenness  80% | CV 10.5% | desk min  442 lx (avg 539) | limit met: NO
+optimize, limit ON                           | evenness  30% | CV 27.2% | desk min  500 lx (avg 610) | limit met: yes
+optimize + joint dimming, limit OFF          | evenness  82% | CV 10.6% | desk min  374 lx (avg 457) | limit met: NO
+optimize + joint dimming, limit ON           | evenness  26% | CV 29.6% | desk min  500 lx (avg 611) | limit met: yes

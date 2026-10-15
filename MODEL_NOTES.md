@@ -674,7 +674,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 - **What:** a section through the head, movable with a slider: the LED board and diffuser per cell, the screw bosses and Head Back (lumped), on one °C scale.
 - **Labels:** temperatures, including bosses flagged above the PLA limit, and heat-flow arrows in W (front, back cavity, bosses).
 - **Not modelled, so grey:** Head Front and camera. Cavity air is not drawn.
-- **Thermal camera (nightstand):** its scale is now fitted to the visible surfaces (room → diffuser surface), and it opens in a close-up of the lamp. It still only shows what an IR camera would see from outside; the cutaway is the view that explains the heat.
+- **Thermal camera (nightstand → Look: Thermal camera):** an IR camera on the desk looking straight up at the diffuser ("From desk ↑"), coloured with the heat map's per-cell diffuser outer-surface temperature, room → hottest. The hottest point is ringed and labelled, and the info line gives the coolest value and the spread. On the metal-core board the spread is small (e.g. 1.6 °C at 21 mm, 55 mA), because the board is nearly one temperature. ASSUMED: the 1 mm PC diffuser is opaque to IR. "See inside" shows the board map instead.
 
 **Report (step 5 → 📄 Report)**
 - **What:** one click builds a printable report (print → Save as PDF) from the current model:

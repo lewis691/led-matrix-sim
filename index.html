@@ -479,7 +479,7 @@ th{color:var(--muted);font-weight:600}
             <label>Walls <select id="v3walls"><option value="glass">see-through</option><option value="solid">solid</option><option value="hide">hidden</option></select></label>
             <label>Open up <input type="range" id="v3explode" min="0" max="1" step="0.05" value="0" style="width:60px"></label>
             <label class="chk"><input type="checkbox" id="v3beams"> beam cones</label></span>
-            <span id="v3roomOpts" style="display:none"><label title="Real look: light and shadows. Thermal camera: colours only the temperatures the heat map computes (diffuser surface, Head Back), everything not modelled is grey.">Look <select id="v3roomLook"><option value="real">Real (light)</option><option value="thermal">Thermal camera</option></select></label> <label class="chk" title="Thermal camera only: show the LED board's temperature map instead of the diffuser surface (hides Head Front and camera)"><input type="checkbox" id="v3irInside"> see inside</label> <label>exposure <input type="range" id="v3roomEv" min="-4" max="4" step="0.25" value="0" style="width:80px"></label> <button data-v3cam="room">Room</button><button data-v3cam="roomLow">Nightstand</button><button data-v3cam="roomLamp">Lamp</button></span>
+            <span id="v3roomOpts" style="display:none"><label title="Real look: light and shadows. Thermal camera: an IR camera on the desk looking up at the diffuser, coloured with the heat map's diffuser-surface temperatures; the hottest point is ringed and labelled. Surfaces the model doesn't compute are grey.">Look <select id="v3roomLook"><option value="real">Real (light)</option><option value="thermal">Thermal camera</option></select></label> <label class="chk" title="Thermal camera only: show the LED board's temperature map instead of the diffuser surface (hides Head Front and camera)"><input type="checkbox" id="v3irInside"> see inside</label> <label>exposure <input type="range" id="v3roomEv" min="-4" max="4" step="0.25" value="0" style="width:80px"></label> <button data-v3cam="room">Room</button><button data-v3cam="roomLow">Nightstand</button><button data-v3cam="roomLamp">Lamp</button><button data-v3cam="irUp" title="IR camera on the desk looking up at the diffuser (use with the Thermal camera look)">From desk ↑</button></span>
             <span class="v3sep"></span>
             <span>Compare with:</span><span id="v3cmp"></span>
             <label class="chk" title="Put the first ticked snapshot first, so it sets the reference for Real-look exposure and relief height"><input type="checkbox" id="v3refSnap" checked> snapshot is reference</label>
@@ -512,8 +512,8 @@ th{color:var(--muted);font-weight:600}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="engine.js?v=27"></script>
-<script src="view3d.js?v=16"></script>
+<script src="view3d.js?v=20"></script>
 <script src="evidence.js?v=5"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=42"></script>
 </body>
 </html>

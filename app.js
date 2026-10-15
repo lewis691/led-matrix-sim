@@ -944,7 +944,8 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
       const M = therm && therm.map;
       $('v3info').innerHTML = `<b>Thermal camera</b> (${M ? M.case : ''} case): <span class="v3grad seq"></span> ${fmt(cfg.ambient, 0)} → ${fmt(sc ? sc.Thi : S.Thi, 0)} °C (scale fitted to what is visible).` +
         ` Coloured only where the heat map computes a temperature: ${o.irInside ? `the <b>LED board</b> (${M ? fmt(M.Tmin, 0) + '–' + fmt(M.Tmax, 0) : '—'} °C)` : `the <b>diffuser outer surface</b> (up to ${M ? fmt(M.TdOutMax, 0) : '—'} °C)`} and the <b>Head Back outer surface</b> (one lumped value, ${M ? fmt(M.TshellOut, 0) : '—'} °C).` +
-        '<br><span style="opacity:.75">Grey = not modelled (Head Front, camera, neck, motor, furniture, room): no temperature is invented for them. An IR camera would see the diffuser, not the board; tick "see inside" for the board.</span>';
+        `<br>Hottest: <b>${window.__v3 && window.__v3.irMax ? `${window.__v3.irMax.what} ${fmt(window.__v3.irMax.T, 1)} °C at (${fmt(window.__v3.irMax.x, 0)}, ${fmt(window.__v3.irMax.y, 0)}) mm` : '—'}</b> (ringed)${window.__v3 && window.__v3.irMax ? `; coolest ${fmt(window.__v3.irMax.Tmin, 1)} °C, so a ${fmt(window.__v3.irMax.T - window.__v3.irMax.Tmin, 1)} °C spread (the metal-core board is nearly one temperature)` : ''}. View: IR camera on the desk looking up (“From desk ↑”).` +
+        '<br><span style="opacity:.75">Grey = not modelled (Head Front, camera, neck, motor, furniture, room): no temperature is invented for them. An IR camera sees the diffuser, not the board; tick "see inside" for the board. The diffuser is treated as opaque to IR (assumed; typical for 1 mm PC).</span>';
       return;
     }
     if (o.scene === 'room') {

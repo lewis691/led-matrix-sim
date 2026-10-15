@@ -248,7 +248,7 @@ function HeadView3D(host, E) {
 
     // --- the head: real STEP shells, camera, neck and (assumed) motor when the CAD gap applies; else an extruded shell
     const grey = mat(0x9aa0a8, 0.4, { metalness: 0.5 });
-    let neckEnd = null;
+    let neckEnd = null, headLow = null;   // headLow = the head part whose underside surrounds the diffuser
     if (cadReady(cfg)) {
       for (const nm of Object.keys(CAD_PARTS)) {
         const m = addH(cadMesh(nm, mat(CAD_PARTS[nm], nm.startsWith('DM') ? 0.4 : 0.7, nm.startsWith('DM') ? { metalness: 0.5 } : {}))); cadObjs[nm] = m;
@@ -257,7 +257,7 @@ function HeadView3D(host, E) {
     } else {
       const shellH = gap + 18, sg = new THREE.ExtrudeGeometry(shapeFromPoly(poly), { depth: shellH, bevelEnabled: true, bevelThickness: 2, bevelSize: 2, bevelSegments: 3 });
       sg.rotateX(Math.PI / 2); sg.translate(0, yDiff + 0.4 + shellH, 0);
-      const shell = addH(new THREE.Mesh(sg, mat(0x751b00, 0.7))); shell.castShadow = true; shell.receiveShadow = true;
+      const shell = addH(new THREE.Mesh(sg, mat(0x751b00, 0.7))); headLow = shell; shell.castShadow = true; shell.receiveShadow = true;
       let y1 = -Infinity; for (const [, y] of poly) y1 = Math.max(y1, y);
       neckEnd = new THREE.Vector3(0, -40, y1 + 40);
     }
@@ -296,10 +296,20 @@ function HeadView3D(host, E) {
       for (const nm of Object.keys(cadObjs)) cadObjs[nm].material = nm === 'Head_Back' && Number.isFinite(M.TshellOut) ? new THREE.MeshBasicMaterial({ color: tcol(M.TshellOut) }) : greyH;
       scene.traverse(o => { if (o.isMesh && o.material && o.material.isMeshStandardMaterial) o.material = greyH; });   // stand, base, fallback shell
       scene.remove(diffMesh);
-      const c = M.cells, h0 = c.res / 2, pos = [], col = [], vals = opt.irInside ? c.T : c.Tdo, yy = opt.irInside ? 0.5 : yDiff - 1.05;
+      // the diffuser's outer face sits inside the Head Front lip, so the IR surface is drawn just below the lowest Head Front point
+      let yLow = yDiff - 1.05; const lowObj = cadReady(cfg) ? cadObjs.Head_Front : headLow; if (!opt.irInside && lowObj) { const bb = new THREE.Box3().setFromObject(lowObj); if (Number.isFinite(bb.min.y)) yLow = Math.min(yLow, bb.min.y - 0.4); }
+      const c = M.cells, h0 = c.res / 2, pos = [], col = [], vals = opt.irInside ? c.T : c.Tdo, yy = opt.irInside ? 0.5 : yLow;
       for (let k = 0; k < c.x.length; k++) { const cl = tcol(vals[k]); for (const [ax, ay] of [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]]) { pos.push(c.x[k] + ax * h0, yy, c.y[k] + ay * h0); col.push(cl.r, cl.g, cl.b); } }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
       scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+      // hottest point of what is shown (diffuser outer surface, or the board with "see inside"): ring + label, facing the IR camera below
+      let kMax = 0; for (let k = 1; k < vals.length; k++) if (vals[k] > vals[kMax]) kMax = k;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(3.2, 4.4, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, depthTest: false }));
+      ring.rotation.x = Math.PI / 2; ring.position.set(c.x[kMax], yy - 0.3, c.y[kMax]); ring.renderOrder = 9; scene.add(ring);
+      const lab = textSprite(`${opt.irInside ? 'board' : 'diffuser'} max ${vals[kMax].toFixed(1)} °C`, '#ffffff'); lab.scale.multiplyScalar(0.55);
+      lab.position.set(c.x[kMax], yy - 6, c.y[kMax] + 9); scene.add(lab);
+      let vMin = Infinity; for (let k = 0; k < vals.length; k++) vMin = Math.min(vMin, vals[k]);
+      view.irMax = { T: vals[kMax], Tmin: vMin, x: c.x[kMax], y: c.y[kMax], what: opt.irInside ? 'board' : 'diffuser' };
       if (opt.irInside) { for (const nm of ['Head_Front', 'Camera']) if (cadObjs[nm]) cadObjs[nm].visible = false; }
       pn.thermal = { Ta, Thi }; view.irScale = { Ta, Thi };
     } else pn.thermal = null;
@@ -423,7 +433,7 @@ function HeadView3D(host, E) {
     });
     const sceneKey = opt.scene + (roomMode && opt.roomLook === 'thermal' ? '-ir' : '');
     if (sceneKey !== lastRoomMode) { lastRoomMode = sceneKey; placed = false; autoCam = null; }
-    if (!placed || autoCam) { const w = autoCam || (cutMode ? 'cut' : roomMode ? (opt.roomLook === 'thermal' ? 'roomLamp' : 'room') : 'head'); home(w); placed = true; autoCam = w; }
+    if (!placed || autoCam) { const w = autoCam || (cutMode ? 'cut' : roomMode ? (opt.roomLook === 'thermal' ? 'irUp' : 'room') : 'head'); home(w); placed = true; autoCam = w; }
     renderAll();
     if (view.onInfo) view.onInfo(S, opt, designs.map(prep));
   }
@@ -436,6 +446,7 @@ function HeadView3D(host, E) {
     if (which === 'cut') { orb.tgt.set(0, 5, opt.cutY); orb.r = 240; orb.th = 0.22; orb.ph = 1.45; }
     else if (which === 'room') { orb.tgt.set(cx + 60, -g - z - 40, cy - 40); orb.r = 1500; orb.th = Math.PI - 0.55; orb.ph = 1.2; }
     else if (which === 'roomLamp') { orb.tgt.set(cx, -g - 20, cy); orb.r = 520; orb.th = Math.PI - 0.6; orb.ph = 1.95; }
+    else if (which === 'irUp') { orb.tgt.set(cx, -g, cy); orb.r = Math.min(z - 20, fit * 1.15); orb.th = 0; orb.ph = Math.PI - 0.03; }   // IR camera on the desk, looking straight up at the diffuser
     else if (which === 'roomLow') { orb.tgt.set(cx, -g - z + 120, cy); orb.r = 800; orb.th = Math.PI - 0.35; orb.ph = 1.45; }
     else if (which === 'head') { orb.tgt.set(cx, -g, cy); orb.r = fit; orb.th = 0.6; orb.ph = 2.2; }
     else if (which === 'below') { orb.tgt.set(cx, -g, cy); orb.r = fit; orb.th = 0; orb.ph = Math.PI - 0.02; }
@@ -447,7 +458,7 @@ function HeadView3D(host, E) {
     // list: [{ label, cfg, geo, E, leds, duty, flux }], first = reference for the Real-look exposure
     update(list) { designs = list; loadCad(); build(); },
     debug() { const out = []; if (panels[0] && panels[0].scene) panels[0].scene.traverse(o => { if (o.isMesh) out.push([o.material.type, o.material.color ? o.material.color.getHexString() : '', o.material.vertexColors ? 'vc' : '', o.geometry.type, o.visible]); }); return out; },
-    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow', 'roomLamp', 'cut'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
+    resize() { layout(); if (autoCam) home(autoCam); renderAll(); }, home(w) { autoCam = ['head', 'below', 'room', 'roomLow', 'roomLamp', 'irUp', 'cut'].includes(w) ? w : null; home(w); }, opt, onInfo: null,
     set(k, v) { opt[k] = v; build(); },
     png() { // all panels side by side in one image
       renderAll(); const cs = panels.map(p => p.renderer.domElement), cols = cs.length <= 1 ? 1 : 2, rows = Math.ceil(cs.length / cols), w = cs[0].width, h = cs[0].height;

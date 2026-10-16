@@ -1,4 +1,4 @@
-// Export the bench layouts (20 LEDs, 4 strings of 5, 22 mm minimum pitch) as build files in code/reports/:
+// Export the bench layouts (20 LEDs, 4 strings of 5, 22 mm minimum pitch) as build files in code/reports/bench/:
 //   <name>-led-coordinates.csv  mm from the dome centre, string, position along the string, nearest-neighbour spacing
 //   <name>-layout.dxf           outline, keepout, LEDs and strings
 //   bench-strings.json          geometry + series order, for checks/string-maps.py (printable 1:1 string maps)
@@ -9,7 +9,7 @@
 const fs = require('fs'), path = require('path');
 const E = require(path.join(__dirname, '..', 'engine.js'))();
 const c = E.defaults(); c.gap = 21; c.cct = 3000; c.current = 55; c.count = 20; c.minPitch = 22;
-const pl = E.buildPlacer(c), out = path.join(__dirname, '..', 'reports'), K = c.keep;
+const pl = E.buildPlacer(c), out = path.join(__dirname, '..', 'reports', 'bench'), K = c.keep;
 fs.mkdirSync(out, { recursive: true });
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // a wire (straight segment) crosses the keepout if any point along it is inside the zone
@@ -37,7 +37,7 @@ function groupStrings(pts, nS, per) {   // simulated annealing over swaps betwee
   }
   return best.map(ids => chain(pts, ids).order);
 }
-const layouts = { 'bench-baseline-and-A-hex-20': ['hex', E.hex(c, pl, 20)], 'bench-B-optimized-20': ['B', require('./best-layout-20.json').leds] };
+const layouts = { 'bench-baseline-and-A-hex-20': ['hex', E.hex(c, pl, 20)], 'bench-B-optimized-20': ['B', require('./data/best-layout-20.json').leds] };
 const maps = { outline: E.outline(c), zone: E.zonePoly(K, E.outline(c)), cam: { x: K.x, y: K.y, r: K.r, holeR: K.holeR }, holes: c.holes, layouts: {} };
 for (const [file, [key, pts]] of Object.entries(layouts)) {
   if (pts.length !== 20) throw new Error(`${file}: ${pts.length} LEDs`);

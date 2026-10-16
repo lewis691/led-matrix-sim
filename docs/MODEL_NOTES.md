@@ -62,11 +62,11 @@ Values are the program defaults (`engine.js → defaults()`), checked against th
 | Light accounting | "light reaching diffuser" only | **every lumen**: out through the diffuser, diffuser loss, walls/chamfer/lip, camera barrel, the open camera ring, other openings (0) | [STEP] + [User] |
 | 3D | extruded outline, mirror-image world | real Head Front/Back, camera, neck and motor meshes; board coloured by the heat map; correct handedness | [STEP] |
 
-**What it means (Variation A re-optimized at the CAD geometry with the original DXF keepout, 25 mA; `checks/example-variations-output.txt`, regenerated 15 Oct):**
+**What it means (Variation A re-optimized at the CAD geometry with the original DXF keepout, 25 mA; `checks/output/example-variations-output.txt`, regenerated 15 Oct):**
 - **About 22–28% of the LED light hits the walls, chamfer and lip** (22% even at a 10 mm gap, because the lip opening sits 3.6 mm inside the board edge) and is lost into dark PLA. Only 50–54% leaves through the diffuser.
 - **At 25 mA the hex start misses the 500 lx desk minimum** (455 lx); the optimizer's desk limit pulls LEDs inward to reach exactly 500 lx.
 - **Evenness is scored over the whole face, corner included** (§ camera keepout), so min/avg stays at 0–3% for every layout; the outside-corner value is shown alongside.
-- Reference numbers (`checks/example-variations-output.txt`): see that file for the current whole-face and outside-corner values; at the previous outside-corner scoring, Baseline hex 32% (whole face 1%), CV 20.9%, 373 lm, desk 455 lx; Variation A 48% (0%), CV 21.3%, 402 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases). The desk limit is what holds evenness down: with it off the optimizer reaches 93% but the desk gets only 395 lx.
+- Reference numbers (`checks/output/example-variations-output.txt`): see that file for the current whole-face and outside-corner values; at the previous outside-corner scoring, Baseline hex 32% (whole face 1%), CV 20.9%, 373 lm, desk 455 lx; Variation A 48% (0%), CV 21.3%, 402 lm, 500 lx; board 85–124 °C for both (Ben's best–worst air cases). The desk limit is what holds evenness down: with it off the optimizer reaches 93% but the desk gets only 395 lx.
 - **The board runs about 124 °C (worst case) or 85 °C (best case)**, because the 4.6 W of electronics roughly doubles the heat. LED chips sit about 0.5 °C above the board, right at the 125 °C datasheet limit in the worst case.
 - **The PLA screw bosses touch the board.** At these temperatures they would soften (PLA glass transition about 55–60 °C). This is the biggest physical risk the model now shows.
 - **The camera ring leaks about 0.03–0.1% of the light (about 0.2–0.6 lm) directly**, undiffused: a thin bright ring around the lens. With the corner keepout no LED is near the lens, so the leak is smaller than with the board-footprint keepout.
@@ -87,13 +87,13 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 | Old feature | What it was in the old program | Now | Justification |
 |---|---|---|---|
 | **Light variations (CCT)** | "LED family" + "Color / reference CCT" selects. The Cree profile offered only 2700 / 3000 K; 5000 K existed only in the Nichia 3030 profile (36.9 lm). | **Restored:** 2700, 3000, 3500, 4000, 5000, 5700, 6500 K | My removal wasn't justified, since the data is sourced. Flux and temperature slope now come from one datasheet (Cree Pro9 p.5, 90 CRI, 65 mA), so 4000 / 5000 K no longer borrow from a different package. The brief says the native family is 3000–6500 K / 90 CRI. The board MPN `JB2835BWT-J-U65EA…` decodes as 90 CRI, 6500 K. |
-| **7% flux margin** | `fluxMargin: 7` (default on), multiplied into every flux: × (1 − 0.07). | **Restored as an option:** "LED flux: Worst case (−7% tolerance)", default Typical | Source: Pro9 datasheet, flux measured to ±7%. Default stays Typical because the tolerance is ± (a measurement spread, not a systematic loss), and Ben's targets (13.69 lm/LED) and heat calcs use typical values. Tick worst case to check margins: Variation A at 3000 K drops from 544 to 506 lx and still passes 500 lx (`checks/cct-output.txt`). |
+| **7% flux margin** | `fluxMargin: 7` (default on), multiplied into every flux: × (1 − 0.07). | **Restored as an option:** "LED flux: Worst case (−7% tolerance)", default Typical | Source: Pro9 datasheet, flux measured to ±7%. Default stays Typical because the tolerance is ± (a measurement spread, not a systematic loss), and Ben's targets (13.69 lm/LED) and heat calcs use typical values. Tick worst case to check margins: Variation A at 3000 K drops from 544 to 506 lx and still passes 500 lx (`checks/output/cct-output.txt`). |
 | **Current sweep** | `optimizeCurrent`: 241 currents between min and max; picks the lowest input power (incl. driver loss and fan) meeting every constraint. | **Restored:** "Find lowest current that meets the targets" (step 1) | My removal wasn't justified. With no driver-loss or fan model, LED power rises monotonically with current, so lowest power = lowest current. It requires light out and desk minimum. Board temperature is reported but not required: in Ben's worst case the board is above 40 °C at any current that gives useful light, so requiring it would always return "none". Steps of 0.5 mA up to the 60.5 mA TLC59711 limit. |
 | **Constraint checklist** | Pass/fail on lumens, lux, board, junction (85 °C design limit), shell (40 °C), power, uniformity, placement, driver (headroom + PWM), rating, cooling. | **Restored:** table in step 5; failed items not already on the status strip go to the issues chip | Each limit now names its source (see §3). Changes: junction limit = **125 °C** (Pro9 datasheet; the old 85 °C had no source). Shell → diffuser outside (touch) vs the brief's 40 °C goal; the brief asks for a touch-point probe, and the old program itself noted the 40 °C wasn't clear about board vs shell. Added LED current ≤ 480 mA and ambient −40…105 °C (datasheet). Dropped "cooling" (no fan) and the PWM-frequency check (the brief says a model PWM value doesn't configure hardware; core tests are DC). |
 | **Copper back layer + rear fan** | `rearMode` none / copper / bare. Copper k 400 W/mK and emissivity 0.03 (labelled "assumed"), board→copper contact R, rear h, rear air rise. Fan: local air velocity, coverage, flow length, flat-plate correlation Nu = 0.664 Re^½ Pr^⅓, fan input power. | **Removed** | (1) The Head has no fan and no copper plate (Head_Board.pdf, DXF). (2) The old program's own notes said the copper result is set by the assumed contact resistance and emissivity ("copper conductivity alone does not remove heat"); none of those inputs has a source for this board. (3) The flat-plate correlation is textbook, but its input (air velocity at the plate) is unknown with no fan. (4) The brief treats passive heat paths as a **variation to build and measure**, so foil/copper on the back is a bench test against the model's front-only baseline. |
 | **Frame thermal path** | `rback = 3` K/W board → frame → ambient, in parallel with the front path. The old UI labelled it "assumed 3 K/W". | **Removed** | Unsourced, and decisive: a 3 K/W path in parallel with Ben's ~16 K/W front path would carry most of the heat, so the board temperature would come from a guess. Ben's network leaves it out on purpose (front only = conservative). Measure the real back path with the fixture's board probe. |
 | **Maintenance factor** | `maintenance: 100` (%), multiplied into flux. | **Removed** | At its default (100%) it had no effect. No LM-80 / TM-21 lumen-maintenance data for this LED is in the context, and the trial measures initial output over hours, not years. Restore it if lifetime targets appear. |
-| **Hotspot "crowding" term** | Added to board temperature: hotspot = (heat per LED) × `spreadR` (2 K/W) × crowd, where crowd = max over LEDs of Σ exp(−d²/2σ²), σ = `spreadLength` 15 mm. Substrate presets set spreadR to 2 / 8 / 15 K/W. | **Removed** | spreadR and σ have no source (the old UI called them "local spreading coefficient" and "heat spreading length"), and the presets are arbitrary. Ben's network treats the board as one temperature. My interim heat-clustering score term (the same idea) was ablation-tested and changed nothing beyond run-to-run noise (`checks/ablation-output.txt`). |
+| **Hotspot "crowding" term** | Added to board temperature: hotspot = (heat per LED) × `spreadR` (2 K/W) × crowd, where crowd = max over LEDs of Σ exp(−d²/2σ²), σ = `spreadLength` 15 mm. Substrate presets set spreadR to 2 / 8 / 15 K/W. | **Removed** | spreadR and σ have no source (the old UI called them "local spreading coefficient" and "heat spreading length"), and the presets are arbitrary. Ben's network treats the board as one temperature. My interim heat-clustering score term (the same idea) was ablation-tested and changed nothing beyond run-to-run noise (`checks/output/ablation-output.txt`). |
 | **Ambient / lamp modes** | Two separate saved states. Ambient: 300 lm, 4 W budget, no lux target. Lamp: 500 lx task target, 6 W budget, 0 lm target. | **Merged** | The Head does both jobs with one layout, so both are now always computed and checked: 300 lm + 65% evenness (brief) and 500 lx at 40 cm (Ben). Separate states let a design pass one while failing the other. The power budget field covers the lamp's 6 W if wanted. |
 | Other LED profiles (Lumileds, Samsung, Nichia, WS2812B) | Selectable families with their own datasheet points | **Removed** | Not the board's part. The brief says to use the actual parts and not mix the J / F-class data; Nichia is a 3030; RGB is outside the trial (brief). |
 | Estimated-V_f mode | V_f from current and temperature | **Removed (could restore)** | V_f is fixed at the datasheet 2.70 V (65 mA). The datasheet curve gives about 2.65 V at 25 mA (read by eye) and −2.6 mV/°C, i.e. about 2% less LED power. Small, but sourced; restore if power accuracy matters. |
@@ -103,7 +103,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 
 **Removed from my own interim versions (not sourced):**
 - The reflective-wall model, the 2-D board-spreading thermal model with foil options, the light-utilisation and heat-clustering score terms, and optimizer camera moves.
-- An ablation test showed the last three changed nothing beyond run-to-run noise (`checks/ablation-output.txt`).
+- An ablation test showed the last three changed nothing beyond run-to-run noise (`checks/output/ablation-output.txt`).
 
 **Proof:** `node checks/examples.js` runs 19 checks against the sources (all pass).
 
@@ -177,7 +177,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - Their power × k_h goes into the heat map at the board under each source.
 - **Not modelled:** shading by the corner parts or the mount, wall bounces, flux droop with temperature.
 - **Check 27:** a raised source matches the closed form straight above it; no type puts more light on the diffuser than it emits; type None changes nothing.
-- **Result** (`checks/aux-corner-output.txt`, `SCATTERING_NOTES.md` §6): a light guide fed with 120–240 lm (efficiency 0.5) lifts optimized whole-face evenness from 1% to 24–45%. Light pipes fed from behind the board behave like raised sources at their exits (same evenness at the same output). Raised sources 12 mm below reach 19–29%. Side-emitters at the edge barely help (3%).
+- **Result** (`checks/output/aux-corner-output.txt`, `SCATTERING_NOTES.md` §6): a light guide fed with 120–240 lm (efficiency 0.5) lifts optimized whole-face evenness from 1% to 24–45%. Light pipes fed from behind the board behave like raised sources at their exits (same evenness at the same output). Raised sources 12 mm below reach 19–29%. Side-emitters at the edge barely help (3%).
 - **DXF re-check:** the corner zone is the envelope of eight part outlines and the camera-board holes drawn in `WT - Lewis.dxf`; the DXF has no single keepout outline. These outlines are now drawn in the zone (`DXF_CORNER` in engine.js).
 
 **Clearances (the dotted lines)**
@@ -327,7 +327,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - "Flux ∝ current" [Old]. Cross-check: the datasheet's relative-flux-vs-current graph (p.6) reads about 40% at 25 mA (by eye) vs the linear model's 38.5%, so the model is about 4% conservative at 25 mA.
 - **Changed:** CCT select restored and extended (old: 2700 / 3000 K for Cree only); ±7% restored as an option instead of always on. Removed estimated-V_f mode, droop and maintenance (see §0).
 - **Cross-check:** Ben's 13.69 lm/LED target [Ben-Heat] vs our 13.9 lm at 25 mA, 3000 K.
-- **Effect on Variation A** (re-optimized at the CAD geometry with the default keepout, 25 mA, worst-case heat map; `checks/cct-output.txt`):
+- **Effect on Variation A** (re-optimized at the CAD geometry with the default keepout, 25 mA, worst-case heat map; `checks/output/cct-output.txt`):
 
   | CCT | Flux | Light out | Desk min | Lowest current meeting 300 lm + 500 lx (chip temperature) |
   |---|---|---|---|---|
@@ -740,7 +740,7 @@ All from `code/`:
   - warm-up settles on the steady map, passive-cooling what-ifs behave physically
   - current-sweep bisection matches a full scan with heat-map derating
   - evenness scored over the whole face by default, outside the corner as an option, both reported
-- `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
+- `checks/output/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%.
 - *(The next two were run at the old assumed 10 mm geometry; their conclusions still hold, and the numbers shift at 17.9 mm.)*
 - `node checks/gap21-why.js`: why evenness stays below 65%. With whole-face scoring the darkest point is always next to the lens inside the keepout corner, so min/avg is 0–5% at every gap, current and LED count (42% at 21 mm with no camera). Scoring only outside the corner (option), the desk limit is what holds it down (see § camera keepout).
 - `node checks/thermal-40c.js`: with the full heat map the electronics alone (LEDs off) put the board at 62–90 °C, so 40 °C is impossible at any LED current. Even with the electronics off the board, 40 °C allows only 6.6 mA (1.08 W, 110 lm, 134 lx) in the worst case.
@@ -748,7 +748,7 @@ All from `code/`:
 - `node checks/dimming-compare.js`: joint vs two-pass dimming.
 - `node checks/desk-limit.js`: desk limit at 25 and 20 mA.
 - `node checks/cct.js`: the colour-temperature table above.
-- `checks/ablation-output.txt`: record only (14 Oct, old model; the script no longer runs) of the test that removed the extra score terms and camera moves.
+- `checks/output/ablation-output.txt`: record only (14 Oct, old model; the script no longer runs) of the test that removed the extra score terms and camera moves.
 
 ---
 

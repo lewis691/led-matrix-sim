@@ -68,12 +68,12 @@ first load).
 the board, PLA properties, motor heat, the diffuser spec ("70 percent diffusion" read as 70% transmission), the J-class
 LED data (the model uses the F-class Pro9 datasheet; the board's part is 6500 K), the real LED positions (not in the
 CAD), and the head being parallel to the desk. The gap, lens and rim are now measured from the STEP. Full list:
-`MODEL_NOTES.md` §10.
+`docs/MODEL_NOTES.md` §10.
 
 **Removed, because they were not sourced:** reflective-wall model, foil-on-back / board-spreading thermal model,
 the light-utilisation and heat-clustering score terms, and optimizer camera moves. The last three changed nothing
-measurable (see `checks/ablation-output.txt`). Each old-program feature (CCT, copper/fan, frame path, flux margin,
-maintenance, crowding, current sweep, checklist, modes) is justified one by one in `MODEL_NOTES.md` §0.
+measurable (see `checks/output/ablation-output.txt`). Each old-program feature (CCT, copper/fan, frame path, flux margin,
+maintenance, crowding, current sweep, checklist, modes) is justified one by one in `docs/MODEL_NOTES.md` §0.
 
 ## Files
 
@@ -83,13 +83,33 @@ maintenance, crowding, current sweep, checklist, modes) is justified one by one 
 - `assets/cad/*.stl`: Head STEP meshes (copied from `context/step_extract/meshes`), used by the 3D view at the CAD gap.
 - `engine.js`: geometry, light model, desk light, thermal, generators, optimizer, strings, exports. It runs in the
   browser, the background worker and Node.
-- `checks/examples.js` (+ `examples-output.txt`): 27 source-checked proofs.
-- `checks/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%, with the lowest current meeting targets.
+- `checks/examples.js` (+ `checks/output/examples-output.txt`): 27 source-checked proofs.
+- `checks/output/cct-output.txt`: Variation A at 3000 / 4000 / 5000 K, typical and −7%, with the lowest current meeting targets.
 - `checks/example-variations.js` (+ output): reference numbers for the Baseline / A / B walkthrough.
 - `checks/desk-limit.js` (+ output): the 500 lx desk limit at 25 and 20 mA.
 - `checks/dimming-compare.js` (+ output): joint vs two-pass dimming.
-- `checks/ablation-output.txt`: record of the score-term / camera-move test.
+- `checks/output/ablation-output.txt`: record of the score-term / camera-move test.
 - `checks/gap21-why.js`, `checks/thermal-40c.js` (+ outputs): why evenness misses 65% (the desk limit pulls LEDs inward), and why 40 °C can't be met (the electronics alone exceed it).
 - `checks/cct.js` (+ output): colour temperature vs light, desk and lowest current.
-- `MODEL_NOTES.md`: point-form notes on every feature (how it works, equations, sources, what changed).
-- `READING_LIST.md`, `DESIGN_NOTES.md`: papers, dimension and architecture confirmations, analysis.
+- `docs/MODEL_NOTES.md`: point-form notes on every feature (how it works, equations, sources, what changed).
+- `docs/READING_LIST.md`, `docs/DESIGN_NOTES.md`: papers, dimension and architecture confirmations, analysis.
+- `docs/NEW_FEATURES.md`: the 15–16 Oct features with the paper passages behind them.
+- `docs/SESSION_REPORT.md`: short report of the work in this chat.
+- `docs/BENCH_TEST_BRIEF.md`: how to run the three bench conditions; `docs/REAR_LIGHT_NOTES.md`, `docs/SCATTERING_NOTES.md`: rear light, stray light and the camera-corner fill.
+- Bench and design scripts: `checks/baseline-55mA.js`, `checks/best-layout.js`, `checks/bench-predictions.js`, `checks/export-bench-layouts.js`, `checks/string-maps.py`, `checks/aux-corner.js`, `checks/rear-light-space.py`.
+
+### Folder layout
+
+```
+code/
+  index.html, app.js, engine.js, view3d.js, evidence.js   the app (open index.html via a local server)
+  assets/cad/        Head STEP meshes for the 3D view
+  checks/            scripts: node checks/<name>.js (or python for the .py ones)
+    output/          what each script printed (<name>-output.txt)
+    data/            layouts the scripts write and read (best-layout*.json)
+  reports/
+    bench/           20-LED bench build: condition report PDFs, layout CSV/DXF, 1:1 string maps
+    full-head/       best 60-LED layout: report PDF, CSV, DXF
+    geometry/        head-space walkthrough (HTML)
+  docs/              notes, briefs and reports (markdown)
+```

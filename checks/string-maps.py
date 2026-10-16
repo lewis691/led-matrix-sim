@@ -1,6 +1,6 @@
-"""Printable 1:1 string maps for the bench layouts (reports/bench-strings.json, written by the export step).
+"""Printable 1:1 string maps for the bench layouts (reports/bench/bench-strings.json, written by the export step).
 Each layout gets a front page (LED side, as in the app) and a back page (mirrored, for wiring behind the board).
-Usage: python checks/string-maps.py   -> reports/bench-string-maps.pdf (print at 100 % / actual size)"""
+Usage: python checks/string-maps.py   -> reports/bench/bench-string-maps.pdf (print at 100 % / actual size)"""
 import json, os
 import matplotlib
 matplotlib.use('Agg')
@@ -9,7 +9,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Polygon, Circle, Rectangle
 
 here = os.path.dirname(os.path.abspath(__file__))
-rep = os.path.join(here, '..', 'reports')
+rep = os.path.join(here, '..', 'reports', 'bench')
 D = json.load(open(os.path.join(rep, 'bench-strings.json'), encoding='utf-8'))
 COL = ['#d62728', '#1f77b4', '#2ca02c', '#9467bd']        # string 1..4
 NAMES = {'hex': 'BASELINE and A: hex grid (20 LEDs, 23.3 mm pitch)', 'B': 'VARIATION B: optimized (20 LEDs, 22 mm min pitch)'}
@@ -55,4 +55,4 @@ with PdfPages(os.path.join(rep, 'bench-string-maps.pdf')) as pdf:
     for name in ['hex', 'B']:
         for back in (False, True):
             page(pdf, name, D['layouts'][name], back)
-print('written reports/bench-string-maps.pdf')
+print('written reports/bench/bench-string-maps.pdf')

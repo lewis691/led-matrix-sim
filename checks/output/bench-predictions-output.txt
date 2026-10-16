@@ -19,7 +19,7 @@ Variation A (hex + foil walls): model = baseline, foil not modelled: LED spacing
                warm-up: 63% of the rise after 7 min, 95% after 21 min | light out 280 lm
                3 × 3 lux grid at 40 cm (rows = y +200 / 0 / −200 mm, cols = x −200 / 0 / +200 mm): 255 360 248 | 363 547 348 | 249 348 239 → mean 329, min 239, max 547, min/mean 73%
 
-Variation B (optimized, checks/best-layout-20.json): LED spacing 22.0–27.9 mm
+Variation B (optimized, checks/data/best-layout-20.json): LED spacing 22.0–27.9 mm
   diffuser evenness (min/avg): whole face 4%, outside the keepout corner 86% | CV 22.9%
   [worst air] board 62.3–63.8 °C (rise 38.8 K), hottest chip 65.4 °C, diffuser outer surface up to 44.1 °C, Head Back outside 27.8 °C
                warm-up: 63% of the rise after 13 min, 95% after 42 min | light out 234 lm

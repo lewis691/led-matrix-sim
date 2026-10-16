@@ -18,9 +18,9 @@ Everything is held constant except the one change in each row.
 
 | ID | Layout | Walls | What it tests |
 |---|---|---|---|
-| **BASE** | Hex grid, 20 LEDs, 23.3 mm pitch: `code/reports/bench-baseline-and-A-hex-20-led-coordinates.csv` / `-layout.dxf` | As built (dark/plain) | Reference |
+| **BASE** | Hex grid, 20 LEDs, 23.3 mm pitch: `code/reports/bench/bench-baseline-and-A-hex-20-led-coordinates.csv` / `-layout.dxf` | As built (dark/plain) | Reference |
 | **A** | Same hex grid as BASE (same files) | **Aluminium foil on the inner side walls**, shiny side in | Does reflecting the wall light raise light out and edge/corner brightness, and does it change temperature? |
-| **B** | Optimized layout, 20 LEDs, 22.0–27.9 mm spacing: `code/reports/bench-B-optimized-20-led-coordinates.csv` / `-layout.dxf` (from `node checks/best-layout.js 20 22`) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
+| **B** | Optimized layout, 20 LEDs, 22.0–27.9 mm spacing: `code/reports/bench/bench-B-optimized-20-led-coordinates.csv` / `-layout.dxf` (from `node checks/best-layout.js 20 22`) | Same as BASE | Does the optimized layout even out the diffuser at the same power? |
 
 **Held constant for all three (Zoheb's power-budget point):**
 - 20 LEDs (JB2835B), 4 strings × 5, **DC 55 mA per string** (no PWM), about 2.97 W of LED power
@@ -30,9 +30,9 @@ Everything is held constant except the one change in each row.
 
 **Layout files:** coordinates are mm from the dome centre (the same frame as the app and the DXF). Each CSV lists the LED's string (4 strings of 5) and its nearest-neighbour spacing. The hex grid is 23.3 mm everywhere; B's closest pairs are exactly 22.0 mm.
 
-**String maps (print at 100 % / actual size; the 50 mm bar checks the scale):** `code/reports/bench-string-maps.pdf`, with a front page (LED side) and a back page (mirrored, for wiring behind the board) per layout. The 4 strings of 5 are colour-coded and numbered along the chain from "start", with each wire's centre-to-centre length. Strings are grouped for the least total wire, and no wire crosses the camera keepout: hex wires are all 23.3 mm, B's are 22–30 mm. The CSVs carry the same string and position columns. All strings run at the same 55 mA, so the grouping doesn't change any prediction.
+**String maps (print at 100 % / actual size; the 50 mm bar checks the scale):** `code/reports/bench/bench-string-maps.pdf`, with a front page (LED side) and a back page (mirrored, for wiring behind the board) per layout. The 4 strings of 5 are colour-coded and numbered along the chain from "start", with each wire's centre-to-centre length. Strings are grouped for the least total wire, and no wire crosses the camera keepout: hex wires are all 23.3 mm, B's are 22–30 mm. The CSVs carry the same string and position columns. All strings run at the same 55 mA, so the grouping doesn't change any prediction.
 
-**Report PDFs (model output for each condition, with the other layout alongside):** `code/reports/bench-baseline-hex-20-report.pdf`, `bench-A-hex-20-foil-walls-report.pdf`, `bench-B-optimized-20-report.pdf`. The full-Head 60-LED result is `full-head-60-optimized-report.pdf` (for reference, not built).
+**Report PDFs (model output for each condition, with the other layout alongside):** `code/reports/bench/bench-baseline-hex-20-report.pdf`, `bench-A-hex-20-foil-walls-report.pdf`, `bench-B-optimized-20-report.pdf`. The full-Head 60-LED result is `code/reports/full-head/full-head-60-optimized-report.pdf` (for reference, not built).
 
 **Variation A needs a build record:** foil product and thickness, which faces are covered (side walls only; not the
 board, the diffuser or the keepout), shiny side in, and how it's fixed (tape type). Photograph it. The model has **no**
@@ -88,7 +88,7 @@ any A or B difference smaller than that spread is inconclusive.
 
 ## 5. Model predictions to compare against
 
-From `node checks/bench-predictions.js` (output in `checks/bench-predictions-output.txt`): Head geometry at 21 mm,
+From `node checks/bench-predictions.js` (output in `checks/output/bench-predictions-output.txt`): Head geometry at 21 mm,
 3000 K, 55 mA, 20 LEDs, LED heat only (the 4.6 W of Head electronics isn't in the fixture), room 25 °C. "Still / moving air"
 are Ben's two air cases.
 

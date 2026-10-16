@@ -223,7 +223,7 @@ H1 keeps this heat ≈ 90 mm from the main board.
 
 ### What the source says
 
-The STEP meshes, ray-cast along −z (`checks/rear-light-space.py`, output in `checks/rear-light-space-output.txt`, visual in `reports/head-space-walkthrough.html`), show:
+The STEP meshes, ray-cast along −z (`checks/rear-light-space.py`, output in `checks/output/rear-light-space-output.txt`, visual in `reports/geometry/head-space-walkthrough.html`), show:
 - The back is a deep dome; its inside surface reaches z ≈ −96 at the pole, about (0, +5).
 - The motor cup, mic ring and DM-J3507 motor occupy everything at the back below y ≈ −5. The neck enters from below.
 

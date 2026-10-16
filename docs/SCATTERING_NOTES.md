@@ -1,6 +1,6 @@
 # Reducing stray light from the main LED matrix
 
-*Lewis Zhang · 16 Oct 2026 · Geometry comes from `context/step_extract` (STEP). Light figures come from the program's light budget (`checks/example-variations-output.txt`) and from hand estimates, not bench results.*
+*Lewis Zhang · 16 Oct 2026 · Geometry comes from `context/step_extract` (STEP). Light figures come from the program's light budget (`checks/output/example-variations-output.txt`) and from hand estimates, not bench results.*
 
 **Scope.** Three ways light from the 60-LED face goes where it shouldn't:
 1. **Escape:** light lost inside the head (walls, board openings, the back cavity, edge glow) instead of leaving through the diffuser.

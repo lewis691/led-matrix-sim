@@ -1,8 +1,8 @@
 // Search for the best 60-LED layout at the bench conditions (21 mm, 3000 K, 55 mA, desk limit on, whole-face evenness
 // scoring). Many starts (hex + Poisson/CVT seeds), each annealed; the best by the model's own score is polished with a
-// longer run. Writes checks/best-layout.json (the app's design format: cfg + leds) for loading into the app.
+// longer run. Writes checks/data/best-layout.json (the app's design format: cfg + leds) for loading into the app.
 // Usage: node checks/best-layout.js [count] [minPitch mm]   (default 60 LEDs at the model's minimum pitch; ~2–5 min)
-// Writes checks/best-layout.json (60 LEDs) or checks/best-layout-<count>.json. The desk limit is only applied for the full
+// Writes checks/data/best-layout.json (60 LEDs) or checks/data/best-layout-<count>.json. The desk limit is only applied for the full
 // 60-LED array: a reduced bench section can't reach the full head's 500 lx, and chasing it would bunch the LEDs.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -35,4 +35,4 @@ console.log(`\nBest: ${best.how}: score ${best.J.toFixed(4)} (hex ${hex.J.toFixe
 console.log(`Spread of the ${rows.length} starts: score ${rows[0].J.toFixed(4)}–${rows[rows.length - 1].J.toFixed(4)}`);
 const bad = pl.okRegion ? best.pts.filter(p => !pl.okRegion(p.x, p.y)).length : 0;
 console.log(`LEDs breaking a placement limit: ${bad}`);
-fs.writeFileSync(path.join(__dirname, N === 60 ? 'best-layout.json' : `best-layout-${N}.json`), JSON.stringify({ cfg: c, leds: best.pts.map(p => ({ x: +p.x.toFixed(3), y: +p.y.toFixed(3) })), note: best.how }, null, 1));
+fs.writeFileSync(path.join(__dirname, 'data', N === 60 ? 'best-layout.json' : `best-layout-${N}.json`), JSON.stringify({ cfg: c, leds: best.pts.map(p => ({ x: +p.x.toFixed(3), y: +p.y.toFixed(3) })), note: best.how }, null, 1));

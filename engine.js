@@ -76,6 +76,10 @@ function HeadLEDEngine() {
       // electronics hot spots on the board: [{ name, x, y, w (W), s (side, mm) }]. Their power is part of elecW; the rest
       // (minus camW) is spread evenly. Empty = all spread evenly (positions unknown).
       elecSpots: [],
+      // secondary light for the dark keepout corner (step 3 → Secondary light). These are NOT the main LEDs: each type has
+      // its own flux (lm per source), beam (FWHM), power and mounting distance, to be entered from the part's datasheet.
+      // The numbers below are EXAMPLE values (ASSUMED) so the option does something when picked; type 'none' = off.
+      aux: { type: 'none', n: 3, lm: 5, w: 0.1, fwhm: 120, dist: 6, h: 0.8, tilt: 0, eff: 0.5, pts: '' },
       mapRes: 2.5,
       cadV: 3,              // geometry version: 1 = measured from the Head STEP; 2 = + datasheet package size/height (audit); 3 = original DXF keepout
       targetLm: 300, targetUniformPct: 65, maxBoard: 40, powerBudget: 4,
@@ -186,6 +190,15 @@ function HeadLEDEngine() {
   }
   function geoKey(cfg) { return JSON.stringify([cfg.shape, cfg.keep, cfg.gap, cfg.ledH, cfg.apInset, cfg.m, cfg.evalInset]); }
 
+  // What WT - Lewis.dxf actually draws inside the corner zone (de-tilted, mm, relative to the lens centre 42.4, -13.3):
+  // the camera board's 4 mounting holes and 2 lens-side circles, and part outlines (rectangles). The zone itself is their
+  // outer envelope (x >= 19.0 and y <= 19.22 are the left and top edges of these outlines); the DXF has no single
+  // keepout outline. Heights are not in the DXF.
+  const DXF_CORNER = {
+    rects: [[19.0, -29.94, 29.0, 10.06], [20.06, 11.53, 30.7, 18.84], [54.79, 12.17, 65.82, 19.22], [56.0, -19.94, 66.0, 10.06], [30.0, -32.94, 50.0, -22.94], [32.5, 5.77, 52.5, 15.06], [32.4, -3.94, 52.6, 1.51], [19.03, -35.12, 28.26, -31.92]],
+    holes: [[31.85, -6.49, 2.1], [52.95, -6.49, 2.1], [31.85, -20.09, 2.1], [52.95, -20.09, 2.1], [33.65, -13.29, 2.0], [51.35, -13.29, 2.0]],
+    ref: [42.4, -13.3],
+  };
   // signed distance from (x, y) to the DXF keepout zone {x >= X0, y <= Y1} (negative inside)
   function zoneDist(K, x, y) {
     const X0 = K.x + K.boxDx, Y1 = K.y + K.boxDy, dx = X0 - x, dy = y - Y1;
@@ -273,10 +286,10 @@ function HeadLEDEngine() {
   // Each LED carries a drive weight wt[i] (its string's PWM duty, 0..1); contributions are stored unweighted.
   function Field(geo, cfg) {
     const nD = geo.nD;
-    const F = { geo, cfg, contrib: [], wt: [], E: new Float64Array(nD) };
+    const F = { geo, cfg, contrib: [], wt: [], E: new Float64Array(nD), base: null };
     const tmpD = new Float32Array(nD);
     F.setAll = function (leds, wts) {
-      F.contrib = []; F.wt = []; F.E.fill(0);
+      F.contrib = []; F.wt = []; F.E.fill(0); if (F.base) F.E.set(F.base);
       leds.forEach((l, i) => {
         const cd = new Float32Array(nD), w = wts ? wts[i] : 1;
         ledContrib(geo, cfg, l.x, l.y, cd);
@@ -314,12 +327,114 @@ function HeadLEDEngine() {
       const cd = new Float32Array(nD); ledContrib(geo, cfg, x, y, cd);
       F.contrib.push(cd); F.wt.push(w); for (let c = 0; c < nD; c++) F.E[c] += w * cd[c];
     };
+    // fixed extra irradiance (secondary light), in the same units as the LED contributions (per lumen of one main LED)
+    F.setBase = function (arr) {
+      for (let c = 0; c < nD; c++) F.E[c] += (arr ? arr[c] : 0) - (F.base ? F.base[c] : 0);
+      F.base = arr ? Float64Array.from(arr) : null;
+    };
     F.remove = function (i) {
       const cd = F.contrib[i], w = F.wt[i];
       for (let c = 0; c < nD; c++) F.E[c] -= w * cd[c];
       F.contrib.splice(i, 1); F.wt.splice(i, 1);
     };
     return F;
+  }
+
+  // ---------------------------------------------------------------- secondary light sources (keepout-corner fill)
+  // All sit inside the front cavity and light the diffuser's inner face; none is a main LED:
+  //   'top'   top-emitting LEDs on a raised mount INSIDE the keepout corner, `dist` mm below the diffuser, facing it
+  //   'side'  side-emitting LEDs on the board just OUTSIDE the keepout (the corner itself is blocked), `h` mm optical
+  //           height, aimed into the corner and tilted up by `tilt` degrees
+  //   'guide' an edge-lit light guide over the corner, `dist` mm below the diffuser; its top face is taken as a UNIFORM
+  //           Lambertian emitter of eff x (n x lm) (ASSUMED uniform extraction; real guides need a dot pattern for that)
+  // Each source: intensity I = I0 cos^m(angle from its axis), I0 = flux (m + 1) / (2 pi), m from the beam FWHM
+  // (cos^m = 1/2 at half the FWHM, Moreno 2006 Eq. 2). Irradiance on the diffuser = I cos(incidence) / r^2 [Textbook]; the
+  // camera barrel blocks rays exactly as for the main LEDs. Not modelled: shading by the corner parts or the mount, light
+  // that reaches the diffuser only after hitting a wall, and flux droop with temperature (lm is taken as entered).
+  const AUX_TYPES = { none: 'None', top: 'Raised top-emitting LEDs in the corner', side: 'Side-emitting LEDs at the keepout edge', guide: 'Edge-lit light guide over the corner' };
+  const auxOn = cfg => !!(cfg.aux && cfg.aux.type && cfg.aux.type !== 'none' && cfg.keep && cfg.keep.on && cfg.keep.zone === 'dxf');
+  function mFromFwhm(fwhm) { const h = Math.min(85, Math.max(5, fwhm / 2)) * Math.PI / 180; return Math.log(0.5) / Math.log(Math.cos(h)); }
+  const auxCache = new Map();
+  // the face cells inside the keepout corner (not over the camera hole): where corner light is wanted
+  function auxZoneCells(cfg) {
+    const g = buildGeo(cfg, 1.0, { noBand: true, noW: true }), K = cfg.keep, out = [];
+    for (let c = 0; c < g.nD; c++) if (zoneDist(K, g.dx[c], g.dy[c]) < 0 && Math.hypot(g.dx[c] - K.x, g.dy[c] - K.y) > (K.holeR || K.r) + 1) out.push([g.dx[c], g.dy[c]]);
+    return { g, cells: out };
+  }
+  function parsePts(txt) { return String(txt || '').split(/\n|;/).map(l => l.split(',').map(Number)).filter(a => a.length >= 2 && a.every(Number.isFinite)).map(a => ({ x: a[0], y: a[1] })); }
+  // sources as point emitters { x, y, z (above the board), ax, ay, az (unit axis), m, flux (lm), w (W) }
+  function auxSources(cfg) {
+    if (!auxOn(cfg)) return [];
+    const A = cfg.aux, K = cfg.keep, key = JSON.stringify([A, K, cfg.shape, cfg.gap, cfg.apInset, cfg.edgeMargin]);
+    if (auxCache.has(key)) return auxCache.get(key);
+    const n = Math.max(1, Math.round(A.n || 1)), m = mFromFwhm(A.fwhm || 120), user = parsePts(A.pts), { g, cells } = auxZoneCells(cfg);
+    const X0 = K.x + K.boxDx, Y1 = K.y + K.boxDy;
+    let cxz = 0, cyz = 0; cells.forEach(([x, y]) => { cxz += x; cyz += y; }); cxz /= cells.length || 1; cyz /= cells.length || 1;
+    let src = [];
+    if (A.type === 'top') {
+      let pts = user.length ? user : null;
+      if (!pts) { // k-means over the corner cells, so each source serves an equal share of the dark area
+        pts = []; let far = cells.reduce((b, p) => (Math.hypot(p[0] - cxz, p[1] - cyz) > Math.hypot(b[0] - cxz, b[1] - cyz) ? p : b), cells[0]);
+        pts.push({ x: far[0], y: far[1] });
+        while (pts.length < n) { let best = null, bd = -1; for (const p of cells) { const d = Math.min(...pts.map(q => Math.hypot(p[0] - q.x, p[1] - q.y))); if (d > bd) { bd = d; best = p; } } pts.push({ x: best[0], y: best[1] }); }
+        for (let it = 0; it < 20; it++) {
+          const sx = new Float64Array(n), sy = new Float64Array(n), sn = new Float64Array(n);
+          for (const p of cells) { let k = 0, bd = Infinity; pts.forEach((q, j) => { const d = (p[0] - q.x) ** 2 + (p[1] - q.y) ** 2; if (d < bd) { bd = d; k = j; } }); sx[k] += p[0]; sy[k] += p[1]; sn[k]++; }
+          pts = pts.map((q, j) => (sn[j] ? { x: sx[j] / sn[j], y: sy[j] / sn[j] } : q));
+        }
+      }
+      const z = Math.max(0.2, cfg.gap - (A.dist || 1));
+      src = pts.map(p => ({ x: p.x, y: p.y, z, ax: 0, ay: 0, az: 1, m, flux: A.lm, w: A.w }));
+    } else if (A.type === 'side') {
+      const cl = PKG_R + 0.5, ok = (x, y) => pointInPoly(g.poly, x, y) && nearestOnPoly(g.poly, g.cum, x, y).d >= (cfg.edgeMargin || 0) + PKG_R;
+      let pts = user.length ? user.map(p => ({ ...p })) : null;
+      if (!pts) { // evenly along the keepout's two inner edges, just outside it
+        const path = [];
+        for (let y = Y1; y > -80; y -= 0.5) if (ok(X0 - cl, y)) path.push({ x: X0 - cl, y, nx: 1, ny: 0 });
+        for (let x = X0; x < 80; x += 0.5) if (ok(x, Y1 + cl)) path.push({ x, y: Y1 + cl, nx: 0, ny: -1 });
+        pts = []; for (let k = 0; k < n; k++) pts.push(path[Math.min(path.length - 1, Math.round((k + 0.5) / n * path.length - 0.5))]);
+        pts = pts.filter(Boolean);
+      }
+      const t = (A.tilt || 0) * Math.PI / 180;
+      src = pts.map(p => {
+        let nx = p.nx, ny = p.ny; if (nx == null) { const d = Math.hypot(cxz - p.x, cyz - p.y) || 1; nx = (cxz - p.x) / d; ny = (cyz - p.y) / d; }   // user points: aim at the corner's centre
+        return { x: p.x, y: p.y, z: Math.max(0.2, A.h || 0.8), ax: nx * Math.cos(t), ay: ny * Math.cos(t), az: Math.sin(t), m, flux: A.lm, w: A.w };
+      });
+    } else if (A.type === 'guide') {
+      const z = Math.max(0.2, cfg.gap - (A.dist || 1)), tot = (A.eff == null ? 0.5 : A.eff) * n * A.lm, per = tot / (cells.length || 1), wPer = n * A.w / (cells.length || 1);
+      src = cells.map(([x, y]) => ({ x, y, z, ax: 0, ay: 0, az: 1, m: 1, flux: per, w: wPer, plate: true }));
+      src.inputLm = n * A.lm;
+    }
+    src.emittedLm = src.reduce((a, b) => a + b.flux, 0); if (src.inputLm == null) src.inputLm = src.emittedLm;
+    src.W = src.reduce((a, b) => a + b.w, 0);
+    if (auxCache.size > 20) auxCache.clear(); auxCache.set(key, src);
+    return src;
+  }
+  // absolute irradiance (lm/mm²) on the diffuser cells of `geo` from the secondary sources, plus lm landing on the aperture
+  function auxField(geo, cfg) {
+    const src = auxSources(cfg), E = new Float64Array(geo.nD);
+    const K = geo.keep, occ = geo.keepOn && K.occlude, A = geo.res * geo.res, gap = cfg.gap;
+    for (const s of src) {
+      const I0 = s.flux * (s.m + 1) / (2 * Math.PI);
+      for (let c = 0; c < geo.nD; c++) {
+        if (geo.camMask[c]) continue;
+        const vx = geo.dx[c] - s.x, vy = geo.dy[c] - s.y, vz = gap - s.z, r2 = vx * vx + vy * vy + vz * vz;
+        if (vz <= 0) continue;
+        const r = Math.sqrt(r2), cp = (vx * s.ax + vy * s.ay + vz * s.az) / r;
+        if (cp <= 0) continue;
+        if (occ && !s.plate && segHitsCircle(s.x, s.y, geo.dx[c], geo.dy[c], K)) continue;
+        E[c] += I0 * Math.pow(cp, s.m) * (vz / r) / r2;
+      }
+    }
+    let onD = 0; for (let c = 0; c < geo.nD; c++) onD += E[c] * A;
+    return { E, onDiffuserLm: onD, emittedLm: src.emittedLm || 0, inputLm: src.inputLm || 0, W: src.W || 0, n: src.length };
+  }
+  // the same field in the main-LED units used by Field (per lumen of one main LED): divide by the main LED flux
+  function auxBase(geo, cfg, fluxMain) {
+    if (!auxOn(cfg) || !(fluxMain > 0)) return null;
+    const f = auxField(geo, cfg), b = new Float64Array(geo.nD);
+    for (let c = 0; c < geo.nD; c++) b[c] = f.E[c] / fluxMain;
+    return b;
   }
 
   // Auto-balance string duties (Moreno 2006 dims the centre LED of a ring; Yang 2009: edge LEDs may need different
@@ -612,6 +727,9 @@ function HeadLEDEngine() {
     // heat sources
     const q = new Float64Array(N), wts = opt.weights || leds.map(() => 1), Pd = led(cfg, 25).Pel, ledCell = leds.map(p => nearest(p.x, p.y));
     let Qled = 0; leds.forEach((p, i) => { const w = cfg.kh * Pd * wts[i]; q[ledCell[i]] += w; Qled += w; });
+    // secondary light: its power as heat at the board under each source (k_h share as for the main LEDs, ASSUMED;
+    // a raised mount or light guide is assumed to sink its heat into the board below it)
+    let Qaux = 0; for (const sx of auxSources(cfg)) { const w = cfg.kh * sx.w; q[nearest(sx.x, sx.y)] += w; Qaux += w; }
     const K = cfg.keep, camW = K.on ? Math.min(cfg.camW || 0, cfg.elecW || 0) : 0, rest = (cfg.elecW || 0) - camW;
     const camCells = []; if (camW > 0) for (let k = 0; k < N; k++) if (K.mod && modDist(K, cx[k], cy[k]) <= 0) camCells.push(k);
     // named hot spots (e.g. SoC, DC/DC) on a square of side s; the remainder spread evenly
@@ -625,7 +743,7 @@ function HeadLEDEngine() {
     const evenW = Math.max(0, rest - spotW);
     for (let k = 0; k < N; k++) q[k] += evenW / N;
     if (camW > 0) { if (camCells.length) camCells.forEach(k => { q[k] += camW / camCells.length; }); else for (let k = 0; k < N; k++) q[k] += camW / N; }
-    const Qtot = Qled + camW + spotW + evenW;   // = LEDs + elecW (unless the spots exceed it)
+    const Qtot = Qled + Qaux + camW + spotW + evenW;   // = LEDs + secondary light + elecW (unless the spots exceed it)
     // back cavity depth per cell (m), boss contacts
     const Lb = new Float64Array(N); for (let k = 0; k < N; k++) Lb[k] = Math.max(5, backGapAt(cx[k], cy[k])) * 1e-3;
     const gBoss = new Float64Array(N); if (!opt.noBack) for (const b of CAD.bosses) {
@@ -724,7 +842,7 @@ function HeadLEDEngine() {
       TshellOut: opt.noBack ? NaN : C(Ta + GBA * (T[N] - Ta) / (hOutLast * Aout)),
       Tmax: C(Tmax), Tmin: C(Tmin), Tavg: C(Tsum / N), hot: { x: cx[kMax], y: cy[kMax] },
       Tj: Tj.map(C), TjMax: Tj.length ? C(Math.max(...Tj)) : NaN, TshellIn: C(T[N]), TdOutMax: C(TdMax), Tboss: Tboss > -Infinity ? C(Tboss) : NaN,
-      Q: { total: Qtot, led: Qled, elec: camW + spotW + evenW, front: Qf, back: Qb, mounts: Qm },
+      Q: { total: Qtot, led: Qled, aux: Qaux, elec: camW + spotW + evenW, front: Qf, back: Qb, mounts: Qm },
       // lumped conductances (W/K) for the warm-up model: board -> shell (cavity + bosses), shell -> room
       G: { bs: (Qb + Qm) / Math.max(1e-6, Tsum / N - T[N]), sa: GBA }, case: kase, Rdiel, kt, ben: th, iters, Tk: Float64Array.from(T),
     };
@@ -986,6 +1104,7 @@ function HeadLEDEngine() {
     const geo = buildGeo(cfg, opt.res || cfg.res), placer = opt.placer || buildPlacer(cfg), F = Field(geo, cfg); // same grid as the displayed result
     const cam = { ...cfg.keep };
     placer.setCam(cam); setCam(geo, cam);
+    if (auxOn(cfg)) F.setBase(auxBase(geo, cfg, opt.flux || led(cfg, thermalMap(cfg, leds, { weights: opt.weights }).TjMax).flux));   // secondary light: fixed, the LEDs are placed around it
     let pts = leds.map(p => ({ ...p }));
     // repair any invalid start positions
     const r = rng(opt.seed || 1);
@@ -1183,7 +1302,7 @@ function HeadLEDEngine() {
   }
 
   return {
-    PKG_W, PKG_L, PKG_H, evenAlt, defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, warmUp, WHATIFS, whatIf, UNCERTAIN, uncertainRun, HEATCAP, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
+    PKG_W, PKG_L, PKG_H, evenAlt, AUX_TYPES, auxOn, auxSources, auxField, auxBase, mFromFwhm, DXF_CORNER, defaults, clone, zoneDist, zonePoly, modDist, modPoly, lightBudget, thermalMap, warmUp, WHATIFS, whatIf, UNCERTAIN, uncertainRun, HEATCAP, backGapAt, CAD, CCT, FLUX_TOL, LED_LIMITS, ledRef, sweepCurrent, checklist, outline, polyArea, pointInPoly, buildGeo, buildPlacer, ledContrib, Field, metrics, led, drive,
     thermal, BEN, objective, rng, poisson, uniformRandom, hex, cvt, fillBestCandidate, optimize, autoDesign,
     assignStrings, balanceStrings, neighbours, taskLight, deskMap, deskModel, deskLux, toDxfDrawn, dxfExport, segHitsCircle, setCam, geoKey, PKG_R, TILT_K, DXF_X0, DXF_Y0,
   };

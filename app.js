@@ -104,15 +104,58 @@
     leds.forEach((p, i) => { if (!placer.okRegion(p.x, p.y) || !placer.okPitch(leds, i, p.x, p.y)) bad.add(i); });
     return bad;
   }
+  // secondary light: its irradiance is added to the field as a fixed base, in main-LED units (divided by the main flux)
+  let auxKey = null;
+  function syncAux(fluxMain) {
+    if (!E.auxOn(cfg) || !leds.length) { if (field.base) field.setBase(null); auxKey = null; return null; }
+    const key = JSON.stringify([cfg.aux, cfg.keep, cfg.gap, geo.cfgKey, fluxMain.toFixed(4)]);
+    const f = E.auxField(geo, cfg);
+    if (key !== auxKey || !field.base) { const b = new Float64Array(geo.nD); for (let c = 0; c < geo.nD; c++) b[c] = f.E[c] / fluxMain; field.setBase(b); auxKey = key; }
+    return { ...f, outLm: f.onDiffuserLm * cfg.tau };
+  }
+  function drawAux() {
+    const src = E.auxSources(cfg); if (!src.length) return;
+    ctx.save();
+    if (cfg.aux.type === 'guide') {   // the plate: its cells, as a light outline of the covered area
+      ctx.fillStyle = 'rgba(120,220,255,.16)'; const h = 0.5 * T.s;
+      for (const s of src) ctx.fillRect(sx(s.x) - h, sy(s.y) - h, 2 * h + 0.5, 2 * h + 0.5);
+      ctx.fillStyle = '#7fdcff'; ctx.font = `${10 * dpr}px system-ui`; ctx.textAlign = 'left';
+      ctx.fillText(`light guide · ${fmt(src.emittedLm, 1)} lm out`, sx(src[0].x), sy(src[0].y) - 4 * dpr);
+    } else {
+      for (const s of src) {
+        ctx.fillStyle = '#7fdcff'; ctx.strokeStyle = '#0b1e2a'; ctx.lineWidth = dpr;
+        ctx.beginPath(); const r = 4 * dpr, X = sx(s.x), Y = sy(s.y);
+        ctx.moveTo(X, Y - r); ctx.lineTo(X + r, Y); ctx.lineTo(X, Y + r); ctx.lineTo(X - r, Y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (cfg.aux.type === 'side') { ctx.strokeStyle = '#7fdcff'; ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + s.ax / Math.hypot(s.ax, s.ay) * 9 * T.s, Y - s.ay / Math.hypot(s.ax, s.ay) * 9 * T.s); ctx.stroke(); }
+      }
+    }
+    ctx.restore();
+  }
+  function auxPanel() {
+    const t = (cfg.aux || {}).type || 'none', show = (id, on) => { const el = $(id); if (el) el.style.display = on ? '' : 'none'; };
+    show('auxOpts', t !== 'none'); show('auxFwhmF', t !== 'guide'); show('auxDistF', t === 'top' || t === 'guide'); show('auxHF', t === 'side'); show('auxTiltF', t === 'side'); show('auxEffF', t === 'guide');
+    if (t === 'none' || !res) return;
+    const a = res.aux;
+    if (!a) { $('auxKv').innerHTML = '<span class="bad">Secondary light needs the original DXF keepout (step 1) with the camera on.</span>'; return; }
+    const lmMain = res.n * res.L.flux;
+    $('auxKv').innerHTML = kv([
+      [`Light from the sources ${tip('Total emitted by the secondary sources (for the light guide: what leaves its top face).')}`, `${fmt(a.emittedLm, 1)} lm (${fmt(a.emittedLm / Math.max(1e-9, lmMain) * 100, 1)}% of the main LEDs' ${fmt(lmMain, 0)} lm)`],
+      [`Reaching the diffuser ${tip('The rest hits the walls, the lip or the camera barrel.')}`, `${fmt(a.onDiffuserLm, 1)} lm → ${fmt(a.outLm, 1)} lm out through it`],
+      [`Power ${tip('Added as heat at the board under each source (85%, assumed).')}`, `${fmt(a.W, 2)} W`],
+      [`Evenness, whole face ${tip('With the secondary light included (it is part of every number in the app while it is on). Compare with Source: None.')}`, `${fmt(res.m.minAvg * 100, 0)}% · variation ${fmt(res.m.cv * 100, 1)}%`],
+    ]);
+  }
   function results() {
-    const n = leds.length, m = E.metrics(geo, field.E, n), wSum = wts().reduce((a, b) => a + b, 0);
+    const n = leds.length, wSum = wts().reduce((a, b) => a + b, 0);
     const L = E.led(cfg, therm ? therm.TjMax : 25), drv = E.drive(cfg, n);   // flux derated at the hottest LED chip (map)
+    const aux = syncAux(L.flux), m = E.metrics(geo, field.E, n);   // secondary light is part of field.E (a fixed base)
+    m.utilMain = m.util - (aux && n ? aux.onDiffuserLm / (n * L.flux) : 0);   // the main LEDs' own share, for 'light reaching diffuser'
     const outLm = n * L.flux * m.util * cfg.tau, meanLux = m.mean * L.flux * 1e6 * cfg.tau;
     let nnSum = 0, nnMin = Infinity;
     for (let i = 0; i < n; i++) { let d = Infinity; for (let j = 0; j < n; j++) if (i !== j) d = Math.min(d, Math.hypot(leds[i].x - leds[j].x, leds[i].y - leds[j].y)); if (Number.isFinite(d)) { nnSum += d; nnMin = Math.min(nnMin, d); } }
     const nn = n > 1 ? nnSum / n : 0;
     const desk = n ? E.taskLight(geo, field.E, L.flux, cfg) : null;
-    return { m, L, drv, n, outLm, meanLux, lum: meanLux / Math.PI, desk, P: wSum * L.Pel, kept: n ? wSum / n : 0, nn, nnMin, dh: nn / (cfg.gap - (cfg.ledH || 0)), bad: validity() };
+    return { m, L, drv, n, aux, outLm, meanLux, lum: meanLux / Math.PI, desk, P: wSum * L.Pel, kept: n ? wSum / n : 0, nn, nnMin, dh: nn / (cfg.gap - (cfg.ledH || 0)), bad: validity() };
   }
 
   // ------------------------------------------------------------ rendering
@@ -204,6 +247,12 @@
           ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.lineWidth = dpr; ctx.strokeStyle = 'rgba(255,200,87,.5)';
           ctx.beginPath(); ctx.moveTo(sx(X0), sy(-60)); ctx.lineTo(sx(X0), sy(Y1)); ctx.lineTo(sx(90), sy(Y1)); ctx.stroke(); ctx.setLineDash([]);
           ctx.fillStyle = '#c9d2de'; ctx.font = `${11 * dpr}px system-ui`; ctx.textAlign = 'left'; ctx.fillText('DXF keepout', sx(K.x + K.boxDx) + 4 * dpr, sy(K.y + K.boxDy) + 14 * dpr);
+          // what the DXF actually draws in the corner (part outlines, camera-board holes), moved with the camera
+          const D = E.DXF_CORNER, ox = K.x - D.ref[0], oy = K.y - D.ref[1];
+          ctx.save(); ctx.strokeStyle = 'rgba(201,210,222,.55)'; ctx.lineWidth = dpr; ctx.setLineDash([]);
+          for (const [x0, y0, x1, y1] of D.rects) ctx.strokeRect(sx(x0 + ox), sy(y1 + oy), (x1 - x0) * T.s, (y1 - y0) * T.s);
+          for (const [x, y, r] of D.holes) { ctx.beginPath(); ctx.arc(sx(x + ox), sy(y + oy), r * T.s, 0, 7); ctx.stroke(); }
+          ctx.restore();
         }
       }
       ctx.fillStyle = camDrag ? 'rgba(60,70,88,.95)' : '#20262f'; ctx.beginPath(); ctx.arc(sx(K.x), sy(K.y), K.r * T.s, 0, 7); ctx.fill();
@@ -211,6 +260,7 @@
       ctx.beginPath(); ctx.arc(sx(K.x), sy(K.y), K.r * 0.45 * T.s, 0, 7); ctx.stroke();
       ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.lineWidth = dpr; ctx.strokeStyle = 'rgba(255,200,87,.5)';
       ctx.beginPath(); ctx.arc(sx(K.x), sy(K.y), (K.r + K.margin) * T.s, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      drawAux();
       ctx.fillStyle = '#c9d2de'; ctx.font = `${11 * dpr}px system-ui`; ctx.textAlign = 'center';
       ctx.fillText('camera', sx(K.x), sy(K.y - K.r) + 14 * dpr);
     }
@@ -273,6 +323,7 @@
   function tile(stp, cls, k, help, v, unit, t) { return `<button class="tile ${cls}" data-goto="${stp}"><div class="k">${k} ${tip(help)}</div><div class="v">${v}<small>${unit}</small></div><div class="t">${t}</div></button>`; }
   function panels() {
     const r = res, m = r.m, th = therm, d = r.drv;
+    auxPanel();
     const tU = cfg.targetUniformPct / 100, ev = m.minAvg;
     // constraint checklist (restored from the old program); the strip tiles already show light, desk, evenness,
     // board and power, so the issues chip lists the remaining failed checks
@@ -305,7 +356,7 @@
       [`Brightness variation ${tip('How much brightness varies across the diffuser (standard deviation ÷ average). No paper gives a visibility threshold for this; lower is smoother.')}`, fmt(m.cv * 100, 1) + '%'],
       ...(E.evenAlt(cfg, m) ? [[`Evenness ${E.evenAlt(cfg, m).label} (not scored) ${tip('The same measures over the other area, for reference. The keepout corner has no LEDs and its far end is about 42 mm from any allowed LED position, so it stays dark whatever the layout.')}`, `${fmt(E.evenAlt(cfg, m).v * 100, 0)}% · variation ${fmt(E.evenAlt(cfg, m).cv * 100, 1)}%`]] : []),
       [`Dimmest 5% vs average ${tip('A gentler evenness measure that ignores the single darkest point.')}`, fmt(m.p5Avg * 100, 0) + '%'],
-      [`Light reaching diffuser ${tip('Share of the LED light that lands on the lit aperture of the diffuser (the Head Front lip opening, from the STEP).')}`, fmt(m.util / (r.kept || 1) * 100, 0) + '%'],
+      [`Light reaching diffuser ${tip('Share of the LED light that lands on the lit aperture of the diffuser (the Head Front lip opening, from the STEP).')}`, fmt(m.utilMain / (r.kept || 1) * 100, 0) + '%'],
       [`Diffuser brightness ${tip('Average luminance of the diffuser surface.')}`, fmt(r.lum, 0) + ' cd/m²'],
       [`Desk: min / avg / max ${tip('Over the desk circle set in step 1. Each diffuser patch treated as a Lambertian source, head parallel to the desk.')}`, r.desk ? `${fmt(r.desk.min, 0)} / ${fmt(r.desk.avg, 0)} / ${fmt(r.desk.max, 0)} lx` : '—'],
       [`Desk evenness ${tip('Darkest divided by average on the desk circle.')}`, r.desk ? fmt(r.desk.uniform * 100, 0) + '%' : '—'],
@@ -405,7 +456,7 @@
   }));
   $('camReset').onclick = () => { const d = E.defaults().keep; pushUndo(); applyCam({ x: d.x, y: d.y, r: d.r, holeR: d.holeR }); field.setAll(leds, wts()); computeThermal(true); refresh(); persist(); };
   function onCfg(k, raw, el) {
-    let v = el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' && !/^\-?\d/.test(raw)) ? raw : Number(raw);
+    let v = el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' && !/^\-?\d/.test(raw)) || el.tagName === 'TEXTAREA' ? raw : Number(raw);
     if (typeof v === 'number' && !Number.isFinite(v)) return;
     if (k === 'count') { changeCount(Math.max(1, Math.round(v))); return; }
     setPath(cfg, k, v);
@@ -413,6 +464,7 @@
     if (k === 'perString' || k === 'stringMode') { ensureStrings(true); field.setAll(leds, wts()); computeThermal(true); refresh(); dutyPanel(); $('showStrings').checked = true; draw(); persist(); return; }
     if (k === 'minDuty' || k === 'dimJoint' || k === 'deskLimit') { persist(); return; }
     if (k === 'thermalCase') $('customCase').style.display = v === 'custom' ? '' : 'none';
+    if (k.startsWith('aux.')) { setPath(cfg, k, v); auxPanel(); computeThermal(true); refresh(); persist(); return; }
     if (k.startsWith('keep.')) {
       applyCam({}); field.setAll(leds, wts()); computeThermal(true); refresh(); persist();
       if (k === 'keep.zone' && res.bad.size) toast(`${res.bad.size} LED(s) are now inside the keepout (red). Run ✨ Optimize or Randomize to re-place them.`, 6000);
@@ -564,9 +616,9 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
         if (cfg.dimJoint && d.r.duty && d.r.groups) { leds.forEach((q, i) => { q.s = d.r.groups[i]; }); cfg.duty = d.r.duty.slice(); } else ensureStrings(cmd === 'auto'); field.setAll(leds, wts()); computeThermal(true); refresh(); dutyPanel(); persist();
         hist.push({ x: runInfo.total, even: res.m.minAvg, cv: res.m.cv }); drawChart();
         if (cfg.deskLimit && d.r.deskOk === false) toast(`Could not reach ${fmt(cfg.targetLux, 0)} lx on the desk at ${fmt(cfg.current, 1)} mA (best ${fmt(d.r.deskMin, 0)} lx). Raise the current or LED count, or untick the desk limit.`, 10000);
-        $('optStats').innerHTML = `<b>Done</b>: evenness ${fmt(startM.minAvg * 100, 0)}% → <b>${fmt(res.m.minAvg * 100, 0)}%</b>, variation ${fmt(startM.cv * 100, 1)}% → <b>${fmt(res.m.cv * 100, 1)}%</b>, light ${fmt(startM.util / startKept * 100, 0)}% → ${fmt(res.m.util / (res.kept || 1) * 100, 0)}% reaching the diffuser${res.desk ? `, desk min ${fmt(res.desk.min, 0)} lx` : ''}.`;
+        $('optStats').innerHTML = `<b>Done</b>: evenness ${fmt(startM.minAvg * 100, 0)}% → <b>${fmt(res.m.minAvg * 100, 0)}%</b>, variation ${fmt(startM.cv * 100, 1)}% → <b>${fmt(res.m.cv * 100, 1)}%</b>, light ${fmt(startM.utilMain / startKept * 100, 0)}% → ${fmt(res.m.utilMain / (res.kept || 1) * 100, 0)}% reaching the diffuser${res.desk ? `, desk min ${fmt(res.desk.min, 0)} lx` : ''}.`;
         const m = res.m;
-        toast(`Done in ${fmt((performance.now() - t0) / 1000, 1)} s: min/avg ${fmt(startM.minAvg * 100, 0)}→${fmt(m.minAvg * 100, 0)}%, CV ${fmt(startM.cv * 100, 1)}→${fmt(m.cv * 100, 1)}%, light ${fmt(startM.util / startKept * 100, 0)}→${fmt(m.util / (res.kept || 1) * 100, 0)}% reaching the diffuser. Ctrl+Z to revert.`, 9000);
+        toast(`Done in ${fmt((performance.now() - t0) / 1000, 1)} s: min/avg ${fmt(startM.minAvg * 100, 0)}→${fmt(m.minAvg * 100, 0)}%, CV ${fmt(startM.cv * 100, 1)}→${fmt(m.cv * 100, 1)}%, light ${fmt(startM.utilMain / startKept * 100, 0)}→${fmt(m.utilMain / (res.kept || 1) * 100, 0)}% reaching the diffuser. Ctrl+Z to revert.`, 9000);
         status('Optimization finished');
       } else if (d.type === 'error') { finishOpt(); toast('Optimizer error: ' + d.msg, 9000); console.error(d.msg); }
     };
@@ -753,7 +805,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
       <li>Light: each LED a cos^m (m = 1 from the 120° beam) source onto the diffuser at the optical height (17.9 − 0.62 mm), Moreno 2006 Eq. 1 × incidence cosine = Ben's derivation; walls absorb; diffuser transmission 0.70.</li>
       <li>Desk: each diffuser patch a Lambertian source onto the desk plane (Ben's method). Evenness = darkest/average (brief); variation = CV (Yang 2009, Su 2012).</li>
       <li>Heat: 2-D board conduction + Ben's front network + back cavity (STEP depths) + PLA bosses with radial spreading into the shell; LED heat k_h = 0.85 (Hui & Qin 2009); reduces exactly to Ben's network (check 20).</li>
-      <li>Checks: node checks/examples.js (26 checks against the sources) in the project repository.</li>
+      <li>Checks: node checks/examples.js (27 checks against the sources) in the project repository.</li>
     </ul></body></html>`;
     status('Report ready');
     const w = window.open('', '_blank');
@@ -892,6 +944,7 @@ catch(err){postMessage({type:'error',msg:String(err&&err.stack||err)});}};`;
     const geoS = E.buildGeo(c, c.res), F = E.Field(geoS, c), duty = ls.map(p => c.duty[p.s] == null ? 1 : c.duty[p.s]);
     F.setAll(ls, duty);
     const th = E.thermalMap(c, ls, { weights: duty }), L = E.led(c, th.TjMax);
+    if (E.auxOn(c)) F.setBase(E.auxBase(geoS, c, L.flux));   // secondary light, as in the live view
     return { name, cfg: c, geo: geoS, E: F.E, leds: ls, duty, flux: L.flux, map: th };
   }
   function v3stats(d) {

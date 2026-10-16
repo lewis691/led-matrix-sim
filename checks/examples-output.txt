@@ -128,4 +128,9 @@ PASS  26. Evenness scoring area: whole face by default, outside the corner as an
       expected: default scores every lit cell; option scores the face minus the corner; both values reported
       got:      4594 face cells, 842 in the corner, 0 misclassified; hex: whole face 0.6%, outside corner 32.1%
 
-26 passed, 0 failed
+PASS  27. Secondary light: closed form, energy, and off means off
+      source:   cos^m source (Moreno 2006 Eq. 2) x incidence cosine / r^2; energy conservation
+      expected: 131.8184 × 10⁻³ lm/mm² straight above; each type puts ≤ what it emits on the diffuser; type 'none' leaves the field unchanged
+      got:      131.8184; top 13.3/15.0 lm, side 3.3/15.0 lm, guide 6.3/7.5 lm; none: 0.59% → 0.59%
+
+27 passed, 0 failed

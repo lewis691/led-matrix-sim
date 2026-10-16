@@ -1,0 +1,16 @@
+rows y, cols x; . = clear dome, normal<20deg from -z, wall 3-3.5, no part in path; o = obstructed/other
+       -35 -30 -25 -20 -15 -10  -5   0   5  10  15  20  25  30  35
+   40    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o
+   35    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o
+   30    o   o   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   o
+   25    ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
+   20    ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
+   15    ~   ~   .   .   .   .   .   .   .   .   .   .   .   ~   ~
+   10    ~   .   .   .   .   .   .   .   .   .   .   .   .   .   .
+    5    .   .   .   .   .   .   .   .   .   .   .   .   .   .   .
+    0    ~   .   .   .   .   .   .   .   .   .   .   .   .   .   ~
+   -5    ~   o   o   o   o   o   o   o   o   o   o   o   o   o   ~
+  -10    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o
+  -15    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o
+  -20    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o
+  -25    o   o   o   o   o   o   o   o   o   o   o   o   o   o   o

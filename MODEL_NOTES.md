@@ -166,6 +166,20 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
   - **Why it is the default:** the user confirmed (15 Oct) that the whole corner is blocked on the new prototype, not just the camera board.
   - **Source:** [DXF]; clearance [Old]/[Mine].
 
+**Secondary light for the keepout corner (step 3 → Secondary light, 16 Oct)**
+- **Why:** the diffuser over the blocked corner is ≈ 42 mm from any allowed LED, so whole-face evenness stays at ≈ 1–5% with the main LEDs alone.
+- **Types:** raised top-emitting LEDs inside the corner (distance below the diffuser), side-emitting LEDs on the board just outside it (height, tilt), or an edge-lit light guide over it (distance, efficiency). Each has its own lm, W, count and beam; none is assumed to be a main LED. The defaults are example values (ASSUMED).
+- **Model:**
+  - Each source is I = I₀ cos<sup>m</sup>(angle from its axis), I₀ = Φ(m + 1)/(2π), with m from the FWHM (cos<sup>m</sup> = ½ at half the FWHM; [Moreno06] Eq. 2). Irradiance on the diffuser = I × incidence cosine / r² [Textbook].
+  - The guide's top face is taken as uniform Lambertian at efficiency × input (ASSUMED uniform extraction).
+  - The camera barrel shades them as for the main LEDs.
+  - The light is added to the field as a fixed base (in main-LED units), so evenness, light out, desk lux, the optimizer, snapshots and the report all include it. "Light reaching diffuser" stays the main LEDs' own share.
+  - Their power × k_h goes into the heat map at the board under each source.
+- **Not modelled:** shading by the corner parts or the mount, wall bounces, flux droop with temperature.
+- **Check 27:** a raised source matches the closed form straight above it; no type puts more light on the diffuser than it emits; type None changes nothing.
+- **Result** (`checks/aux-corner-output.txt`, `SCATTERING_NOTES.md` §6): a light guide with 60–120 lm in lifts optimized whole-face evenness from 1% to 24–45%. Raised sources 12 mm below reach 19–29%. Side-emitters at the edge barely help (3%).
+- **DXF re-check:** the corner zone is the envelope of eight part outlines and the camera-board holes drawn in `WT - Lewis.dxf`; the DXF has no single keepout outline. These outlines are now drawn in the zone (`DXF_CORNER` in engine.js).
+
 **Clearances (the dotted lines)**
 - **What:** every dotted line is a limit for the whole LED **body**:
   - wall gap 1.3 mm (dashed yellow line)
@@ -716,7 +730,7 @@ Old program = `context/HCL_EE_Simulations-main/.../Lighting Simulations/dist/mod
 ## 9. Checks you can run
 
 All from `code/`:
-- `node checks/examples.js`: 26 checks with source, expected and actual values:
+- `node checks/examples.js`: 27 checks with source, expected and actual values:
   - light formula, energy conservation, Moreno spacing, Yang ripple
   - Ben's heat calc, Hui's equations, driver limits
   - Randomize, Even out, Optimize, dimming

@@ -1,0 +1,28 @@
+none                                                       hex | whole face   1%  outside corner  32%  CV 40.7% | light out 373 lm (aux 0) | desk min 455 lx | board 124 °C
+raised top-emitters: 4 × 7.5 lm, 120°, 6 mm below          hex | whole face   7%  outside corner  35%  CV 32.9% | light out 390 lm (aux 18) | desk min 481 lx | board 127 °C
+raised top-emitters: 4 × 7.5 lm, 120°, 12 mm below         hex | whole face  10%  outside corner  38%  CV 33.5% | light out 387 lm (aux 15) | desk min 476 lx | board 127 °C
+side-emitters at the edge: 6 × 5 lm, 120°, tilt 30°        hex | whole face   1%  outside corner  37%  CV 37.3% | light out 381 lm (aux 10) | desk min 467 lx | board 128 °C
+light guide: 4 × 15 lm in, eff 0.5, 3 mm below             hex | whole face  12%  outside corner  41%  CV 31.2% | light out 391 lm (aux 19) | desk min 482 lx | board 127 °C
+raised top-emitters: 4 × 15 lm, 120°, 6 mm below           hex | whole face   9%  outside corner  39%  CV 31.2% | light out 409 lm (aux 37) | desk min 509 lx | board 127 °C
+raised top-emitters: 4 × 15 lm, 120°, 12 mm below          hex | whole face  14%  outside corner  43%  CV 27.6% | light out 402 lm (aux 31) | desk min 499 lx | board 127 °C
+side-emitters at the edge: 6 × 10 lm, 120°, tilt 30°       hex | whole face   2%  outside corner  43%  CV 34.4% | light out 391 lm (aux 20) | desk min 481 lx | board 128 °C
+light guide: 4 × 30 lm in, eff 0.5, 3 mm below             hex | whole face  22%  outside corner  43%  CV 24.1% | light out 410 lm (aux 38) | desk min 511 lx | board 127 °C
+raised top-emitters: 4 × 30 lm, 120°, 6 mm below           hex | whole face  13%  outside corner  43%  CV 41.7% | light out 445 lm (aux 74) | desk min 560 lx | board 127 °C
+raised top-emitters: 4 × 30 lm, 120°, 12 mm below          hex | whole face  23%  outside corner  43%  CV 21.0% | light out 433 lm (aux 61) | desk min 544 lx | board 127 °C
+side-emitters at the edge: 6 × 20 lm, 120°, tilt 30°       hex | whole face   2%  outside corner  43%  CV 30.4% | light out 411 lm (aux 40) | desk min 510 lx | board 128 °C
+light guide: 4 × 60 lm in, eff 0.5, 3 mm below             hex | whole face  40%  outside corner  43%  CV 20.2% | light out 448 lm (aux 77) | desk min 564 lx | board 127 °C
+
+none                                                       opt | whole face   1%  outside corner  37%  CV 34.5% | light out 400 lm (aux 0) | desk min 500 lx | board 124 °C
+raised top-emitters: 4 × 7.5 lm, 120°, 6 mm below          opt | whole face   9%  outside corner  47%  CV 25.2% | light out 399 lm (aux 18) | desk min 500 lx | board 127 °C
+raised top-emitters: 4 × 7.5 lm, 120°, 12 mm below         opt | whole face  12%  outside corner  46%  CV 25.6% | light out 400 lm (aux 15) | desk min 500 lx | board 127 °C
+side-emitters at the edge: 6 × 5 lm, 120°, tilt 30°        opt | whole face   1%  outside corner  38%  CV 31.8% | light out 401 lm (aux 10) | desk min 500 lx | board 129 °C
+light guide: 4 × 15 lm in, eff 0.5, 3 mm below             opt | whole face  12%  outside corner  48%  CV 23.0% | light out 399 lm (aux 19) | desk min 500 lx | board 127 °C
+raised top-emitters: 4 × 15 lm, 120°, 6 mm below           opt | whole face  13%  outside corner  67%  CV 24.4% | light out 397 lm (aux 37) | desk min 500 lx | board 127 °C
+raised top-emitters: 4 × 15 lm, 120°, 12 mm below          opt | whole face  19%  outside corner  54%  CV 18.9% | light out 398 lm (aux 31) | desk min 500 lx | board 127 °C
+side-emitters at the edge: 6 × 10 lm, 120°, tilt 30°       opt | whole face   2%  outside corner  46%  CV 28.5% | light out 401 lm (aux 20) | desk min 500 lx | board 129 °C
+light guide: 4 × 30 lm in, eff 0.5, 3 mm below             opt | whole face  24%  outside corner  56%  CV 14.7% | light out 398 lm (aux 38) | desk min 500 lx | board 127 °C
+raised top-emitters: 4 × 30 lm, 120°, 6 mm below           opt | whole face  16%  outside corner  47%  CV 39.7% | light out 451 lm (aux 74) | desk min 566 lx | board 127 °C
+raised top-emitters: 4 × 30 lm, 120°, 12 mm below          opt | whole face  29%  outside corner  78%  CV 13.1% | light out 397 lm (aux 61) | desk min 500 lx | board 127 °C
+side-emitters at the edge: 6 × 20 lm, 120°, tilt 30°       opt | whole face   3%  outside corner  64%  CV 22.8% | light out 400 lm (aux 40) | desk min 500 lx | board 129 °C
+light guide: 4 × 60 lm in, eff 0.5, 3 mm below             opt | whole face  45%  outside corner  66%  CV 13.6% | light out 400 lm (aux 77) | desk min 504 lx | board 127 °C
+

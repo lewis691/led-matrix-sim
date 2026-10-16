@@ -60,6 +60,7 @@ One short direct quotation is used (§3). Page numbers are journal pages where t
 - **Raised top-emitters:** LEDs on a mount inside the corner, a chosen distance below the diffuser, facing it.
 - **Side-emitters:** LEDs on the board just outside the corner (the corner itself is blocked), at a chosen height, aimed into it and tilted up.
 - **Light guide:** an edge-lit plate over the corner, a chosen distance below the diffuser, glowing over its whole area.
+- **Light pipes from behind the board:** LEDs on the board's back (or a small back board), each feeding a clear pipe through a hole in the board up into the corner. The pipe exit is the source: LED lm × pipe efficiency, with the exit's own beam angle, a chosen distance below the diffuser. The LEDs' heat still goes into the metal-core board.
 
 **Inputs, per source:** light output (lm), power (W), count, beam angle (FWHM), and the type's distance, height, tilt or guide efficiency. They are entered from the chosen part's datasheet. The defaults are example values, labelled assumed in `evidence.js`; nothing is copied from the main LEDs.
 
@@ -78,7 +79,8 @@ One short direct quotation is used (§3). Page numbers are journal pages where t
 | Secondary light | Whole-face evenness after optimizing |
 |---|---|
 | None | 1% |
-| Light guide, 60 / 120 lm in | 24% / 45% |
+| Light guide, 120 / 240 lm in (efficiency 0.5) | 24% / 45% |
+| Light pipes from behind, 4 × 60 lm LEDs, efficiency 0.5, exit 12 mm below | 29% |
 | Raised, 4 × 30 lm, 12 mm below the diffuser | 29% |
 | Raised, 4 × 30 lm, 6 mm below | 16% (hot spots) |
 | Side-emitters at the edge, 6 × 20 lm | 3% |

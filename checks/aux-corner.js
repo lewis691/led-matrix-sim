@@ -1,7 +1,8 @@
 // Secondary light for the dark keepout corner: does it lift whole-face evenness, and how much light does it need?
 // CAD geometry, original DXF keepout, 60 LEDs at 25 mA (worst-case heat), whole-face scoring. For each source type the
 // total light is swept; "hex" keeps the hex grid, "opt" re-optimizes the 60 LEDs around the fixed secondary light.
-// Source values are EXAMPLES (lm, beam, distance), not a chosen part. Usage: node checks/aux-corner.js   (~3 min)
+// Source values are EXAMPLES (lm, beam, distance, efficiency), not a chosen part. Light pipes and the guide are fed
+// with 2x the lm so their OUTPUT matches the other rows at efficiency 0.5. Usage: node checks/aux-corner.js   (~3 min)
 'use strict';
 const path = require('path');
 const E = require(path.join(__dirname, '..', 'engine.js'))();
@@ -24,6 +25,7 @@ for (const opt of [false, true]) {
     run(`raised top-emitters: 4 × ${tot / 4} lm, 120°, 12 mm below`, { type: 'top', n: 4, lm: tot / 4, w: 0.1, fwhm: 120, dist: 12 }, opt);
     run(`side-emitters at the edge: 6 × ${tot / 6} lm, 120°, tilt 30°`, { type: 'side', n: 6, lm: tot / 6, w: 0.1, fwhm: 120, h: 0.8, tilt: 30 }, opt);
     run(`light guide: 4 × ${tot / 2} lm in, eff 0.5, 3 mm below`, { type: 'guide', n: 4, lm: tot / 2, w: 0.1, eff: 0.5, dist: 3 }, opt);
+    run(`light pipes from behind: 4 × ${tot / 2} lm LEDs, eff 0.5, exit 120°, 12 mm below`, { type: 'pipe', n: 4, lm: tot / 2, w: 0.1, eff: 0.5, fwhm: 120, dist: 12 }, opt);
   }
   console.log('');
 }

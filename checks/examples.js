@@ -298,7 +298,7 @@ const cfg = E.defaults(), placer = E.buildPlacer(cfg);
   const g = E.buildGeo(c, 0.5), af = E.auxField(g, c), m = E.mFromFwhm(90);
   let k = 0, bd = Infinity; for (let i = 0; i < g.nD; i++) { const d = Math.hypot(g.dx[i] - 25, g.dy[i] + 28); if (d < bd) { bd = d; k = i; } }
   const r = Math.hypot(bd, 6), cf = 10 * (m + 1) / (2 * Math.PI) * Math.pow(6 / r, m) * (6 / r) / (r * r);
-  const types = ['top', 'side', 'guide'].map(t => { const cc = E.clone(cfg); cc.aux = { ...cc.aux, type: t }; const ff = E.auxField(E.buildGeo(cc, cc.res), cc); return [t, ff.onDiffuserLm, ff.emittedLm]; });
+  const types = ['top', 'side', 'guide', 'pipe'].map(t => { const cc = E.clone(cfg); cc.aux = { ...cc.aux, type: t }; const ff = E.auxField(E.buildGeo(cc, cc.res), cc); return [t, ff.onDiffuserLm, ff.emittedLm]; });
   const g0 = E.buildGeo(cfg, cfg.res), F0 = E.Field(g0, cfg), pts = E.hex(cfg, placer, 60); F0.setAll(pts); const a0 = E.metrics(g0, F0.E, 60).minAvg;
   F0.setBase(E.auxBase(g0, cfg, 10)); const a1 = E.metrics(g0, F0.E, 60).minAvg;   // cfg.aux.type is 'none': base is null
   const ok = Math.abs(af.E[k] / cf - 1) < 1e-9 && types.every(([, on, em]) => on <= em + 1e-9 && on > 0) && a0 === a1;

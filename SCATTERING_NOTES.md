@@ -360,14 +360,17 @@ The face's darkest region is the diffuser over the blocked DXF corner (x ≥ 19.
 | Side-emitters at the edge, 6 × 20 lm, tilted 30° | 40 lm | 2% → 3% | 22.8% |
 | Light guide, 4 × 30 lm in, efficiency 0.5, 3 mm below | 38 lm | 22% → 24% | 14.7% |
 | Light guide, 4 × 60 lm in, efficiency 0.5, 3 mm below | 77 lm | 40% → 45% | 13.6% |
+| Light pipes fed from behind, 4 × 30 lm LEDs, efficiency 0.5, exit 12 mm below | 31 lm | 14% → 19% | 18.9% |
+| Light pipes fed from behind, 4 × 60 lm LEDs, efficiency 0.5, exit 12 mm below | 61 lm | 23% → 29% | 13.1% |
 
 **What follows**
-1. **A light guide is the best fit** for an evenly lit corner: it spreads light over the whole dark area. ≈ 40–80 lm out of the face (60–120 lm into the guide, ≈ 0.3–0.8 W of mid-power LEDs at 150–206 lm/W) takes whole-face evenness from ≈ 1% to ≈ 25–45%.
+1. **A light guide is the best fit** for an evenly lit corner: it spreads light over the whole dark area. ≈ 40–80 lm out of the face (120–240 lm of LEDs into the guide at efficiency 0.5, ≈ 0.6–1.6 W of mid-power LEDs at 150–206 lm/W) takes whole-face evenness from ≈ 1% to ≈ 25–45%. At that power the extra board heat is ≈ 4–12 K (≈ 9 K per W of heat, from the sweep), not the ≈ 3 °C the sweep shows (the sweep charges every row 0.1 W per source).
 2. **Raised point sources work if they sit far enough back** (≈ 12 mm below the diffuser here). Too close (6 mm) gives hot spots: d/h is too large for 4 sources over ≈ 2,100 mm².
-3. **Side-emitters at the keepout edge barely help.** At ≈ 1 mm height about half their beam goes into the board, the rest reaches the diffuser at grazing angles, and the barrel shades the far corner.
-4. **None of them reaches 65% whole-face evenness** at these powers. The cells right beside the camera hole stay darkest (the barrel shades them).
-5. **Interactions:** the extra light also raises desk lux, so the optimizer can spread the main LEDs more. It adds ≈ 3 °C of board heat at 0.4 W. A guide or mount near the barrel puts more light near the lens, so do the camera sleeve (§2) first.
-6. **Bench check:** build a guide coupon over a mock corner, photograph the diffuser at fixed exposure with the guide on and off, and compare the corner's luminance with the model.
+3. **Light pipes from behind the board act like raised sources at the pipe exits**, with the pipe's efficiency as a loss (same results as the raised rows at the same output). They keep the LEDs and wiring out of the front cavity but need holes through the board in the corner, and their heat still enters the metal-core board.
+4. **Side-emitters at the keepout edge barely help.** At ≈ 1 mm height about half their beam goes into the board, the rest reaches the diffuser at grazing angles, and the barrel shades the far corner.
+5. **None of them reaches 65% whole-face evenness** at these powers. The cells right beside the camera hole stay darkest (the barrel shades them).
+6. **Interactions:** the extra light also raises desk lux, so the optimizer can spread the main LEDs more. It adds ≈ 3 °C of board heat at 0.4 W. A guide or mount near the barrel puts more light near the lens, so do the camera sleeve (§2) first.
+7. **Bench check:** build a guide coupon over a mock corner, photograph the diffuser at fixed exposure with the guide on and off, and compare the corner's luminance with the model.
 
 ## Sources
 

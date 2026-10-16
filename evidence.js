@@ -31,6 +31,7 @@ window.HEAD_EVIDENCE = [
   ['DXF corner contents', '8 part outlines + camera-board holes; the zone is their envelope', 'cad', 'WT - Lewis.dxf (de-tilted); no single keepout outline is drawn; heights not in the DXF'],
   ['Secondary light sources (corner)', 'lm, W, beam, distance per source: example values until a part is chosen', 'assumed', 'enter from the datasheet of the chosen part; beam → cos^m via Moreno 2006 Eq. 2'],
   ['Light guide exit', 'uniform Lambertian, efficiency × input', 'assumed', 'best case; a real guide needs a dot pattern'],
+  ['Light pipe efficiency and exit beam', 'example 0.5 and 120°', 'assumed', 'take both from the pipe datasheet; the LED heat is added to the board'],
   ['Evenness scored over the whole lit face', 'keepout corner included; outside-corner value shown alongside (option to score only outside)', 'user', 'user, 15 Oct'],
   ['Screw holes and front bosses', '3 holes; Ø8.6 bosses at TL/TR', 'cad', 'Head STEP (agrees with the DXF to 0.04 mm)'],
   ['Head outline', 'R 69.55, corners R 33.64, bottom R 482.38', 'cad', 'DXF; STEP agrees to 0.05 mm (right corner is R 33.84 in the DXF; the model mirrors the left one)'],

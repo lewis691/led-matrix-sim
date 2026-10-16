@@ -347,11 +347,14 @@ function HeadLEDEngine() {
   //           height, aimed into the corner and tilted up by `tilt` degrees
   //   'guide' an edge-lit light guide over the corner, `dist` mm below the diffuser; its top face is taken as a UNIFORM
   //           Lambertian emitter of eff x (n x lm) (ASSUMED uniform extraction; real guides need a dot pattern for that)
+  //   'pipe'  LEDs BEHIND the board, each feeding a light pipe through a hole in the board up into the corner; the pipe
+  //           exit, `dist` mm below the diffuser, is the source: eff x lm, beam = the exit's FWHM (both from the pipe's
+  //           datasheet). The LED's heat still goes into the board (on its back face; the metal core spreads it the same)
   // Each source: intensity I = I0 cos^m(angle from its axis), I0 = flux (m + 1) / (2 pi), m from the beam FWHM
   // (cos^m = 1/2 at half the FWHM, Moreno 2006 Eq. 2). Irradiance on the diffuser = I cos(incidence) / r^2 [Textbook]; the
   // camera barrel blocks rays exactly as for the main LEDs. Not modelled: shading by the corner parts or the mount, light
   // that reaches the diffuser only after hitting a wall, and flux droop with temperature (lm is taken as entered).
-  const AUX_TYPES = { none: 'None', top: 'Raised top-emitting LEDs in the corner', side: 'Side-emitting LEDs at the keepout edge', guide: 'Edge-lit light guide over the corner' };
+  const AUX_TYPES = { none: 'None', top: 'Raised top-emitting LEDs in the corner', side: 'Side-emitting LEDs at the keepout edge', guide: 'Edge-lit light guide over the corner', pipe: 'Light pipes fed from behind the board' };
   const auxOn = cfg => !!(cfg.aux && cfg.aux.type && cfg.aux.type !== 'none' && cfg.keep && cfg.keep.on && cfg.keep.zone === 'dxf');
   function mFromFwhm(fwhm) { const h = Math.min(85, Math.max(5, fwhm / 2)) * Math.PI / 180; return Math.log(0.5) / Math.log(Math.cos(h)); }
   const auxCache = new Map();
@@ -371,7 +374,7 @@ function HeadLEDEngine() {
     const X0 = K.x + K.boxDx, Y1 = K.y + K.boxDy;
     let cxz = 0, cyz = 0; cells.forEach(([x, y]) => { cxz += x; cyz += y; }); cxz /= cells.length || 1; cyz /= cells.length || 1;
     let src = [];
-    if (A.type === 'top') {
+    if (A.type === 'top' || A.type === 'pipe') {
       let pts = user.length ? user : null;
       if (!pts) { // k-means over the corner cells, so each source serves an equal share of the dark area
         pts = []; let far = cells.reduce((b, p) => (Math.hypot(p[0] - cxz, p[1] - cyz) > Math.hypot(b[0] - cxz, b[1] - cyz) ? p : b), cells[0]);
@@ -383,8 +386,9 @@ function HeadLEDEngine() {
           pts = pts.map((q, j) => (sn[j] ? { x: sx[j] / sn[j], y: sy[j] / sn[j] } : q));
         }
       }
-      const z = Math.max(0.2, cfg.gap - (A.dist || 1));
-      src = pts.map(p => ({ x: p.x, y: p.y, z, ax: 0, ay: 0, az: 1, m, flux: A.lm, w: A.w }));
+      const z = Math.max(0.2, cfg.gap - (A.dist || 1)), eff = A.type === 'pipe' ? (A.eff == null ? 0.5 : A.eff) : 1;
+      src = pts.map(p => ({ x: p.x, y: p.y, z, ax: 0, ay: 0, az: 1, m, flux: eff * A.lm, w: A.w }));
+      src.inputLm = src.length * A.lm;
     } else if (A.type === 'side') {
       const cl = PKG_R + 0.5, ok = (x, y) => pointInPoly(g.poly, x, y) && nearestOnPoly(g.poly, g.cum, x, y).d >= (cfg.edgeMargin || 0) + PKG_R;
       let pts = user.length ? user.map(p => ({ ...p })) : null;

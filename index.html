@@ -330,8 +330,8 @@ th{color:var(--muted);font-weight:600}
         <div class="readout" id="budgetKv"></div>
       </div>
       <div class="block">
-        <h3>Secondary light (dark keepout corner) <span class="q" data-tip="Extra light sources that are NOT the main LEDs, to fill the diffuser over the blocked camera corner. Each type has its own flux, beam, power and distance: enter them from the part you would use (the defaults are example values, assumed). Raised: top-emitting LEDs on a mount inside the corner, facing the diffuser. Side: side-emitting LEDs on the board just outside the corner, aimed into it. Light guide: an edge-lit plate over the corner, glowing evenly. The camera barrel shades them like the main LEDs; the corner parts and mount are not modelled as shading. Only with the original DXF keepout.">?</span></h3>
-        <label class="f"><span class="lbl">Source</span><select data-k="aux.type"><option value="none">None</option><option value="top">Raised top-emitting LEDs in the corner</option><option value="side">Side-emitting LEDs at the keepout edge</option><option value="guide">Edge-lit light guide over the corner</option></select></label>
+        <h3>Secondary light (dark keepout corner) <span class="q" data-tip="Extra light sources that are NOT the main LEDs, to fill the diffuser over the blocked camera corner. Each type has its own flux, beam, power and distance: enter them from the part you would use (the defaults are example values, assumed). Raised: top-emitting LEDs on a mount inside the corner, facing the diffuser. Side: side-emitting LEDs on the board just outside the corner, aimed into it. Light guide: an edge-lit plate over the corner, glowing evenly. Light pipes: LEDs behind the board, each feeding a clear pipe through a hole in the board up into the corner; the pipe exit is the source (its own lm × efficiency and beam). The camera barrel shades them like the main LEDs; the corner parts and mount are not modelled as shading. Only with the original DXF keepout.">?</span></h3>
+        <label class="f"><span class="lbl">Source</span><select data-k="aux.type"><option value="none">None</option><option value="top">Raised top-emitting LEDs in the corner</option><option value="side">Side-emitting LEDs at the keepout edge</option><option value="guide">Edge-lit light guide over the corner</option><option value="pipe">Light pipes fed from behind the board</option></select></label>
         <div id="auxOpts">
           <div class="grid3">
             <label class="f"><span class="lbl">How many <span class="q" data-tip="Number of sources. For the light guide: the LEDs feeding its edge.">?</span></span><input type="number" data-k="aux.n" step="1" min="1" max="20"></label>
@@ -339,11 +339,11 @@ th{color:var(--muted);font-weight:600}
             <label class="f"><span class="lbl">W each <span class="q" data-tip="Electrical power of each source; 85% of it is added as heat at the board under it (assumed, as for the main LEDs).">?</span></span><input type="number" data-k="aux.w" step="0.01" min="0"></label>
           </div>
           <div class="grid3">
-            <label class="f" id="auxFwhmF"><span class="lbl">Beam angle (°) <span class="q" data-tip="Full width at half maximum from the datasheet (120° = Lambertian). Sets the cos^m beam: m = ln 0.5 / ln cos(FWHM/2).">?</span></span><input type="number" data-k="aux.fwhm" step="5" min="10" max="170"></label>
-            <label class="f" id="auxDistF"><span class="lbl">Below the diffuser (mm) <span class="q" data-tip="Distance from the source (or the light guide's top face) to the diffuser's inner face. Closer = brighter, smaller spot.">?</span></span><input type="number" data-k="aux.dist" step="0.5" min="0.5"></label>
+            <label class="f" id="auxFwhmF"><span class="lbl">Beam angle (°) <span class="q" data-tip="Full width at half maximum from the datasheet (120° = Lambertian). For light pipes: the exit's beam from the pipe datasheet. Sets the cos^m beam: m = ln 0.5 / ln cos(FWHM/2).">?</span></span><input type="number" data-k="aux.fwhm" step="5" min="10" max="170"></label>
+            <label class="f" id="auxDistF"><span class="lbl">Below the diffuser (mm) <span class="q" data-tip="Distance from the source (the light guide's top face, or a light pipe's exit) to the diffuser's inner face. Closer = brighter, smaller spot.">?</span></span><input type="number" data-k="aux.dist" step="0.5" min="0.5"></label>
             <label class="f" id="auxHF"><span class="lbl">Height on board (mm) <span class="q" data-tip="Side-emitting LED: height of its light-emitting centre above the board.">?</span></span><input type="number" data-k="aux.h" step="0.1" min="0.1"></label>
             <label class="f" id="auxTiltF"><span class="lbl">Tilt up (°) <span class="q" data-tip="Side-emitting LED: aim tilted up from the board plane towards the diffuser.">?</span></span><input type="number" data-k="aux.tilt" step="5" min="0" max="80"></label>
-            <label class="f" id="auxEffF"><span class="lbl">Guide efficiency <span class="q" data-tip="Share of the feeding LEDs' light that leaves the guide's top face (assumed; get it from the guide maker or measure it). Its exit is taken as uniform.">?</span></span><input type="number" data-k="aux.eff" step="0.05" min="0.05" max="1"></label>
+            <label class="f" id="auxEffF"><span class="lbl" id="auxEffLbl">Guide efficiency <span class="q" data-tip="Share of the feeding LEDs' light that leaves the guide's top face, or a light pipe's exit (assumed; get it from the guide or pipe maker, or measure it). A guide's exit is taken as uniform.">?</span></span><input type="number" data-k="aux.eff" step="0.05" min="0.05" max="1"></label>
           </div>
           <label class="f"><span class="lbl">Positions (mm, one "x, y" per line; empty = automatic) <span class="q" data-tip="Automatic: raised sources spread to serve equal shares of the corner; side sources spaced along the keepout's two inner edges, aimed in. Typed positions use the same frame as the canvas.">?</span></span><textarea data-k="aux.pts" rows="2" style="width:100%;font:12px ui-monospace,monospace"></textarea></label>
           <div class="readout" id="auxKv"></div>
@@ -531,9 +531,9 @@ th{color:var(--muted);font-weight:600}
 <div id="tip" role="tooltip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="engine.js?v=28"></script>
+<script src="engine.js?v=29"></script>
 <script src="view3d.js?v=20"></script>
-<script src="evidence.js?v=6"></script>
-<script src="app.js?v=45"></script>
+<script src="evidence.js?v=7"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>

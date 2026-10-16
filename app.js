@@ -133,13 +133,14 @@
   }
   function auxPanel() {
     const t = (cfg.aux || {}).type || 'none', show = (id, on) => { const el = $(id); if (el) el.style.display = on ? '' : 'none'; };
-    show('auxOpts', t !== 'none'); show('auxFwhmF', t !== 'guide'); show('auxDistF', t === 'top' || t === 'guide'); show('auxHF', t === 'side'); show('auxTiltF', t === 'side'); show('auxEffF', t === 'guide');
+    show('auxOpts', t !== 'none'); show('auxFwhmF', t !== 'guide'); show('auxDistF', t === 'top' || t === 'guide' || t === 'pipe'); show('auxHF', t === 'side'); show('auxTiltF', t === 'side'); show('auxEffF', t === 'guide' || t === 'pipe');
+    if ($('auxEffLbl')) $('auxEffLbl').firstChild.nodeValue = t === 'pipe' ? 'Pipe efficiency ' : 'Guide efficiency ';
     if (t === 'none' || !res) return;
     const a = res.aux;
     if (!a) { $('auxKv').innerHTML = '<span class="bad">Secondary light needs the original DXF keepout (step 1) with the camera on.</span>'; return; }
     const lmMain = res.n * res.L.flux;
     $('auxKv').innerHTML = kv([
-      [`Light from the sources ${tip('Total emitted by the secondary sources (for the light guide: what leaves its top face).')}`, `${fmt(a.emittedLm, 1)} lm (${fmt(a.emittedLm / Math.max(1e-9, lmMain) * 100, 1)}% of the main LEDs' ${fmt(lmMain, 0)} lm)`],
+      [`Light from the sources ${tip('Total emitted by the secondary sources (light guide: what leaves its top face; light pipes: what leaves the pipe exits). In brackets: the LEDs feeding them, if different.')}`, `${fmt(a.emittedLm, 1)} lm${a.inputLm > a.emittedLm + 1e-6 ? ` (from ${fmt(a.inputLm, 1)} lm of LEDs)` : ''} · ${fmt(a.emittedLm / Math.max(1e-9, lmMain) * 100, 1)}% of the main LEDs' ${fmt(lmMain, 0)} lm`],
       [`Reaching the diffuser ${tip('The rest hits the walls, the lip or the camera barrel.')}`, `${fmt(a.onDiffuserLm, 1)} lm → ${fmt(a.outLm, 1)} lm out through it`],
       [`Power ${tip('Added as heat at the board under each source (85%, assumed).')}`, `${fmt(a.W, 2)} W`],
       [`Evenness, whole face ${tip('With the secondary light included (it is part of every number in the app while it is on). Compare with Source: None.')}`, `${fmt(res.m.minAvg * 100, 0)}% · variation ${fmt(res.m.cv * 100, 1)}%`],
